@@ -17,7 +17,7 @@ Everything stays on your local Wi-Fi. No server, no account, and the PC side is 
 
 <br>
 
-<img src="docs/images/desktop-chat.png" width="68%" alt="Desktop chat view">&nbsp;&nbsp;<img src="docs/images/phone-chat.png" width="23%" alt="Phone chat view">
+<img src="docs/images/en/desktop-chat.png" width="68%" alt="Desktop chat view">&nbsp;&nbsp;<img src="docs/images/en/phone-chat.png" width="23%" alt="Phone chat view">
 
 </div>
 
@@ -61,10 +61,10 @@ When the PC window is in the background, new messages pop up as Windows notifica
 
 <table>
   <tr>
-    <td width="33%"><img src="docs/images/desktop-files.png" alt="Files page"></td>
-    <td width="33%"><img src="docs/images/desktop-settings.png" alt="Settings"></td>
-    <td width="16%"><img src="docs/images/phone-files.png" alt="Phone files"></td>
-    <td width="16%"><img src="docs/images/phone-menu.png" alt="Phone connection menu"></td>
+    <td width="33%"><img src="docs/images/en/desktop-files.png" alt="Files page"></td>
+    <td width="33%"><img src="docs/images/en/desktop-settings.png" alt="Settings"></td>
+    <td width="16%"><img src="docs/images/en/phone-files.png" alt="Phone files"></td>
+    <td width="16%"><img src="docs/images/en/phone-menu.png" alt="Phone connection menu"></td>
   </tr>
   <tr>
     <td align="center">Files: the receiving folder</td>
