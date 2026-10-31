@@ -90,7 +90,7 @@
 </head>
 <body>
 <main>
-  <h1>📲 文件互传</h1>
+  <h1>📲 <span>文件互传</span></h1>
 
   <section class="card" id="connect">
     <div id="qr"></div>
@@ -131,6 +131,57 @@
 const $ = s => document.querySelector(s);
 let isLocal = false;
 
+// 按浏览器语言显示中文或英文；以中文原文作 key
+const EN = !/^zh/i.test(navigator.language || '');
+const DICT = {
+  '文件互传': 'LanDrop',
+  '用手机扫码连接': 'Scan with your phone to connect',
+  '手机和电脑需连同一个 Wi-Fi。用手机浏览器或微信扫一扫打开。': 'Your phone and PC must be on the same Wi-Fi. Scan with your phone\'s browser or camera.',
+  '📂 打开共享文件夹': '📂 Open shared folder',
+  '发送文件': 'Send files',
+  '点击选择文件': 'Tap to choose files',
+  '可多选，上传后另一端在下方列表下载': 'Pick several at once. After uploading, download them from the list below on the other device',
+  '发送文字 / 链接': 'Send text / links',
+  '粘贴文字或链接，发送到另一端…': 'Paste text or a link to send to the other device…',
+  '发送': 'Send',
+  '共享文件': 'Shared files',
+  '加载中…': 'Loading…',
+  '已复制': 'Copied',
+  '复制失败，请长按手动复制': 'Copy failed. Long-press to copy manually',
+  '二维码库加载失败（电脑需联网），请在手机浏览器手动输入上面的地址': 'Couldn\'t load the QR code library (the PC needs internet). Type the address above into your phone\'s browser',
+  '可多选，也可以把文件直接拖到这里': 'Pick several at once, or drop files here',
+  '点击选择文件，或拖拽到此处': 'Click to choose files, or drag them here',
+  '扫不通？换个网卡地址：': 'Not working? Try another network address: ',
+  '等待中': 'Waiting',
+  '失败': 'Failed',
+  '失败（网络中断）': 'Failed (network interrupted)',
+  '来自{from} · {time}': 'From {from} · {time}',
+  '复制': 'Copy',
+  '先输入内容': 'Type something first',
+  '已发送': 'Sent',
+  '还没有文件，从任意一端上传吧': 'No files yet. Upload from either device',
+  '打开': 'Open',
+  '下载': 'Download',
+  '删除': 'Delete',
+  '删除「{name}」？': 'Delete "{name}"?',
+  '已删除': 'Deleted',
+};
+function t(s, vars) {
+  let out = EN && DICT[s] !== undefined ? DICT[s] : s;
+  if (vars) out = out.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '');
+  return out;
+}
+if (EN) {
+  document.documentElement.lang = 'en';
+  document.title = t(document.title);
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  for (let n; (n = walker.nextNode());) {
+    const key = n.nodeValue.trim();
+    if (key && DICT[key] !== undefined) n.nodeValue = n.nodeValue.replace(key, DICT[key]);
+  }
+  $('#textInput').placeholder = t($('#textInput').placeholder);
+}
+
 function toast(msg) {
   const t = $('#toast');
   t.textContent = msg; t.classList.add('show');
@@ -159,12 +210,12 @@ async function api(path, body) {
 function copyText(text) {
   // 局域网 http 页面里 navigator.clipboard 往往不可用，退回旧方案
   if (navigator.clipboard && window.isSecureContext) {
-    return navigator.clipboard.writeText(text).then(() => toast('已复制'));
+    return navigator.clipboard.writeText(text).then(() => toast(t('已复制')));
   }
   const ta = document.createElement('textarea');
   ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
   document.body.appendChild(ta); ta.select();
-  try { document.execCommand('copy'); toast('已复制'); } catch { toast('复制失败，请长按手动复制'); }
+  try { document.execCommand('copy'); toast(t('已复制')); } catch { toast(t('复制失败，请长按手动复制')); }
   ta.remove();
 }
 
@@ -172,7 +223,7 @@ function copyText(text) {
 function drawQR(url) {
   const box = $('#qr');
   $('#urlBox').innerHTML = `<code>${esc(url)}</code>`;
-  if (!window.qrcode) { box.innerHTML = '<p class="tip" style="color:#666;padding:8px">二维码库加载失败（电脑需联网），请在手机浏览器手动输入上面的地址</p>'; return; }
+  if (!window.qrcode) { box.innerHTML = `<p class="tip" style="color:#666;padding:8px">${t('二维码库加载失败（电脑需联网），请在手机浏览器手动输入上面的地址')}</p>`; return; }
   const qr = qrcode(0, 'M'); qr.addData(url); qr.make();
   box.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
 }
@@ -182,8 +233,8 @@ async function loadInfo() {
   $('#dirInfo').textContent = isLocal ? info.dir : '';
   if (!isLocal) return;
   $('#connect').style.display = 'flex';
-  $('#dropTip').textContent = '可多选，也可以把文件直接拖到这里';
-  $('#drop strong').textContent = '点击选择文件，或拖拽到此处';
+  $('#dropTip').textContent = t('可多选，也可以把文件直接拖到这里');
+  $('#drop strong').textContent = t('点击选择文件，或拖拽到此处');
   await new Promise(res => {
     const s = document.createElement('script');
     s.src = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js';
@@ -191,7 +242,7 @@ async function loadInfo() {
   });
   drawQR(info.urls[0]);
   if (info.urls.length > 1) {
-    $('#ipPick').innerHTML = '扫不通？换个网卡地址：<select id="ipSel">' +
+    $('#ipPick').innerHTML = t('扫不通？换个网卡地址：') + '<select id="ipSel">' +
       info.urls.map(u => `<option>${esc(u)}</option>`).join('') + '</select>';
     $('#ipSel').onchange = e => drawQR(e.target.value);
   }
@@ -206,7 +257,7 @@ function addFiles(list) {
   for (const f of list) {
     const el = document.createElement('div');
     el.className = 'job';
-    el.innerHTML = `<div class="row"><span class="name">${esc(f.name)}</span><span class="pct">等待中</span></div><div class="bar"><i></i></div>`;
+    el.innerHTML = `<div class="row"><span class="name">${esc(f.name)}</span><span class="pct">${t('等待中')}</span></div><div class="bar"><i></i></div>`;
     $('#queue').prepend(el);
     queue.push({ file: f, el });
   }
@@ -233,10 +284,10 @@ function pump() {
       pct.textContent = `✓ ${fmtSize(file.size)}`;
       loadFiles();
       setTimeout(() => el.remove(), 4000);
-    } else { el.classList.add('fail'); pct.textContent = '失败'; }
+    } else { el.classList.add('fail'); pct.textContent = t('失败'); }
     uploading = false; pump();
   };
-  xhr.onerror = () => { el.classList.add('fail'); pct.textContent = '失败（网络中断）'; uploading = false; pump(); };
+  xhr.onerror = () => { el.classList.add('fail'); pct.textContent = t('失败（网络中断）'); uploading = false; pump(); };
   xhr.send(file);
 }
 
@@ -261,10 +312,10 @@ async function loadTexts() {
   const sig = list.map(t => t.id).join();
   if (sig === lastTexts) return;
   lastTexts = sig;
-  $('#texts').innerHTML = list.map(t => `
+  $('#texts').innerHTML = list.map(m => `
     <div class="text-item">
-      <pre>${linkify(esc(t.text))}</pre>
-      <div class="meta"><span>来自${esc(t.from)} · ${fmtTime(t.time)}</span><button class="ghost" data-copy="${t.id}">复制</button></div>
+      <pre>${linkify(esc(m.text))}</pre>
+      <div class="meta"><span>${t('来自{from} · {time}', { from: esc(m.from), time: fmtTime(m.time) })}</span><button class="ghost" data-copy="${m.id}">${t('复制')}</button></div>
     </div>`).join('');
   $('#texts').querySelectorAll('[data-copy]').forEach(b => {
     b.onclick = () => copyText(list.find(t => t.id === b.dataset.copy).text);
@@ -275,8 +326,8 @@ function linkify(s) {
 }
 $('#sendText').onclick = async () => {
   const text = $('#textInput').value.trim();
-  if (!text) return toast('先输入内容');
-  try { await api('/api/texts', { text }); $('#textInput').value = ''; toast('已发送'); loadTexts(); }
+  if (!text) return toast(t('先输入内容'));
+  try { await api('/api/texts', { text }); $('#textInput').value = ''; toast(t('已发送')); loadTexts(); }
   catch (e) { toast(e.message); }
 };
 
@@ -288,7 +339,7 @@ async function loadFiles() {
   const sig = JSON.stringify(list);
   if (sig === lastFiles) return;
   lastFiles = sig;
-  if (!list.length) { $('#files').innerHTML = '<div class="empty">还没有文件，从任意一端上传吧</div>'; return; }
+  if (!list.length) { $('#files').innerHTML = `<div class="empty">${t('还没有文件，从任意一端上传吧')}</div>`; return; }
   $('#files').innerHTML = list.map(f => {
     const u = '/dl/' + encodeURIComponent(f.name);
     const ext = (f.name.split('.').pop() || '').slice(0, 4).toUpperCase();
@@ -298,15 +349,15 @@ async function loadFiles() {
       <div class="meta"><div class="fname" title="${esc(f.name)}">${esc(f.name)}</div>
         <div class="sub">${fmtSize(f.size)} · ${fmtTime(f.mtime)}</div></div>
       <div class="ops">
-        <a class="btn ghost preview" href="${u}?inline=1" target="_blank">打开</a>
-        <a class="btn" href="${u}" download>下载</a>
-        <button class="danger" data-del="${esc(f.name)}" title="删除">✕</button>
+        <a class="btn ghost preview" href="${u}?inline=1" target="_blank">${t('打开')}</a>
+        <a class="btn" href="${u}" download>${t('下载')}</a>
+        <button class="danger" data-del="${esc(f.name)}" title="${t('删除')}">✕</button>
       </div></div>`;
   }).join('');
   $('#files').querySelectorAll('[data-del]').forEach(b => {
     b.onclick = async () => {
-      if (!confirm(`删除「${b.dataset.del}」？`)) return;
-      try { await api('/api/delete', { name: b.dataset.del }); toast('已删除'); loadFiles(); }
+      if (!confirm(t('删除「{name}」？', { name: b.dataset.del }))) return;
+      try { await api('/api/delete', { name: b.dataset.del }); toast(t('已删除')); loadFiles(); }
       catch (e) { toast(e.message); }
     };
   });

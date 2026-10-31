@@ -26,6 +26,7 @@
     <symbol id="i-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 6l3 3M15 8l2 2"/></symbol>
     <symbol id="i-wifi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5a15 15 0 0 1 20 0M5 12a10 10 0 0 1 14 0M8.5 15.5a5 5 0 0 1 7 0"/><circle cx="12" cy="19" r="1" fill="currentColor"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></symbol>
     <symbol id="i-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v13m0 0-5-5m5 5 5-5M5 20h14"/></symbol>
   </defs>
 </svg>
@@ -176,6 +177,13 @@
         <h2>Windows</h2>
         <div class="card">
           <div class="row">
+            <div class="ico"><svg width="19" height="19"><use href="#i-globe"/></svg></div>
+            <div class="txt"><div class="title">语言 Language</div><div class="desc">界面语言，修改后立即生效</div></div>
+            <div class="seg text" id="setLang">
+              <button data-lang="auto">跟随系统</button><button data-lang="zh">中文</button><button data-lang="en">English</button>
+            </div>
+          </div>
+          <div class="row">
             <div class="ico"><svg width="19" height="19"><use href="#i-chat"/></svg></div>
             <div class="txt"><div class="title">收到消息时通知</div><div class="desc">窗口不在前台时，手机发来的文字和文件会在屏幕右下角弹出通知，点一下打开聊天</div></div>
             <label class="switch" title="收到消息时通知"><input type="checkbox" id="setNotify"><span></span></label>
@@ -214,7 +222,7 @@
         </div>
       </div>
 
-      <div class="about">文件互传 1.2 · 关闭窗口后在系统托盘继续接收文件</div>
+      <div class="about"><span>文件互传</span> 1.3 · <span>关闭窗口后在系统托盘继续接收文件</span></div>
     </div>
   </div>
 </section>
@@ -237,7 +245,7 @@
   <div class="modal" role="dialog" aria-labelledby="pairTitle">
     <div class="mico"><svg width="24" height="24"><use href="#i-phone"/></svg></div>
     <h3 id="pairTitle">新手机请求连接</h3>
-    <p><b id="pairDevice"></b>（<span id="pairIp"></span>）想要连接这台电脑。允许后，它可以向电脑发送文件和文字，并下载接收文件夹里的文件。</p>
+    <p id="pairText"></p>
     <div class="actions">
       <button class="btn" id="pairDeny">拒绝</button>
       <button class="btn primary" id="pairAllow">允许连接</button>
@@ -260,6 +268,7 @@
 
 <div id="ctx"></div>
 <div id="toast"></div>
+<script src="i18n.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

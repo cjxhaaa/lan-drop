@@ -31,9 +31,19 @@ fn ps_quote(s: &str) -> String {
     format!("'{}'", s.replace('\'', "''"))
 }
 
-pub fn sendto_link() -> PathBuf {
+fn sendto_dir() -> PathBuf {
     let appdata = std::env::var_os("APPDATA").map(PathBuf::from).unwrap_or_default();
-    appdata.join(r"Microsoft\Windows\SendTo\手机互传.lnk")
+    appdata.join(r"Microsoft\Windows\SendTo")
+}
+
+/// 快捷方式的名字就是菜单里显示的文字，按当前语言取名
+fn sendto_link() -> PathBuf {
+    sendto_dir().join(format!("{}.lnk", crate::state::tr("手机互传", "LanDrop")))
+}
+
+/// 中英文两种名字的快捷方式都算已添加（切换语言后不重复添加）
+pub fn sendto_added() -> bool {
+    ["手机互传.lnk", "LanDrop.lnk"].iter().any(|n| sendto_dir().join(n).exists())
 }
 
 /// 右键菜单「发送到 → 手机互传」：本质是指向接收文件夹的快捷方式，系统会把文件复制进去。

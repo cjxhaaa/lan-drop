@@ -126,7 +126,7 @@ public class MainActivity extends Activity {
         findViewById(R.id.btn_attach).setOnClickListener(v -> pickFiles());
         findViewById(R.id.btn_remote).setOnClickListener(v -> {
             if (!store.paired()) findPc();
-            else if (!connected) toast("电脑不在线，连上后才能控制");
+            else if (!connected) toast(L.t("电脑不在线，连上后才能控制"));
             else startActivity(new Intent(this, RemoteActivity.class));
         });
         btnSend.setOnClickListener(v -> sendText());
@@ -235,16 +235,16 @@ public class MainActivity extends Activity {
     private void renderStatus() {
         int dotColor;
         if (!store.paired()) {
-            pcName.setText("未连接电脑");
-            status.setText("点这里查找电脑");
+            pcName.setText(L.t("未连接电脑"));
+            status.setText(L.t("点这里查找电脑"));
             dotColor = R.color.faint;
         } else if (connected) {
             pcName.setText(store.name());
-            status.setText("已连接");
+            status.setText(L.t("已连接"));
             dotColor = R.color.ok;
         } else {
             pcName.setText(store.name());
-            status.setText("电脑不在线");
+            status.setText(L.t("电脑不在线"));
             dotColor = R.color.danger;
         }
         statusDot.setBackgroundTintList(ColorStateList.valueOf(getColor(dotColor)));
@@ -258,40 +258,40 @@ public class MainActivity extends Activity {
         Sheet sheet = new Sheet(this)
                 .icon(R.drawable.ic_computer, R.color.accent, R.drawable.circle_soft)
                 .title(store.name())
-                .message(connected ? "已连接 · " + store.ip() + ":" + store.port() : "不在线 · 请确认电脑上打开了「文件互传」，并且在同一个 Wi-Fi");
+                .message(connected ? L.t("已连接 · ") + store.ip() + ":" + store.port() : L.t("不在线 · 请确认电脑上打开了「文件互传」，并且在同一个 Wi-Fi"));
         if (!connected) {
-            sheet.option(R.drawable.ic_refresh, "重新连接", null, false, () -> {
-                toast("正在重新连接…");
+            sheet.option(R.drawable.ic_refresh, L.t("重新连接"), null, false, () -> {
+                toast(L.t("正在重新连接…"));
                 refresh(true);
             });
         }
-        sheet.toggle(R.drawable.ic_bell, "后台消息通知", "App 没打开时，电脑发来消息也会提醒你", NotifyService.enabled(this), on -> {
+        sheet.toggle(R.drawable.ic_bell, L.t("后台消息通知"), L.t("App 没打开时，电脑发来消息也会提醒你"), NotifyService.enabled(this), on -> {
                     NotifyService.setEnabled(this, on);
                     if (on) startNotifications();
                 })
-                .option(R.drawable.ic_cast, MirrorService.running ? "停止投屏" : "投屏到电脑",
-                        MirrorService.running ? "电脑上正在显示这台手机的屏幕" : "在电脑上查看和操作这台手机", MirrorService.running, () -> {
+                .option(R.drawable.ic_cast, MirrorService.running ? L.t("停止投屏") : L.t("投屏到电脑"),
+                        MirrorService.running ? L.t("电脑上正在显示这台手机的屏幕") : L.t("在电脑上查看和操作这台手机"), MirrorService.running, () -> {
                             if (MirrorService.running) startService(new Intent(this, MirrorService.class).setAction(MirrorService.ACTION_STOP));
                             else startMirror();
                         })
-                .option(R.drawable.ic_swap, "连接其他电脑", null, false, this::findPc)
-                .option(R.drawable.ic_logout, "断开并忘记这台电脑", "之后需要重新配对", true, this::confirmForget)
+                .option(R.drawable.ic_swap, L.t("连接其他电脑"), null, false, this::findPc)
+                .option(R.drawable.ic_logout, L.t("断开并忘记这台电脑"), L.t("之后需要重新配对"), true, this::confirmForget)
                 .show();
     }
 
     private void confirmForget() {
         new Sheet(this)
                 .icon(R.drawable.ic_logout, R.color.danger, R.drawable.circle_soft)
-                .title("忘记「" + store.name() + "」？")
-                .message("断开后不再自动连接这台电脑，下次需要在电脑上重新允许。")
-                .buttons("取消", null, "断开", () -> {
+                .title(L.f("忘记「%s」？", store.name()))
+                .message(L.t("断开后不再自动连接这台电脑，下次需要在电脑上重新允许。"))
+                .buttons(L.t("取消"), null, L.t("断开"), () -> {
                     stopService(new Intent(this, NotifyService.class));
                     store.clear();
                     connected = false;
                     renderStatus();
                     resetChat();
                     lastFiles = "";
-                    renderFilesEmpty("还没有连接电脑");
+                    renderFilesEmpty(L.t("还没有连接电脑"));
                 }, true)
                 .show();
     }
@@ -327,10 +327,10 @@ public class MainActivity extends Activity {
         pickerList.setOrientation(LinearLayout.VERTICAL);
         return new Sheet(this)
                 .icon(R.drawable.ic_wifi, R.color.accent, R.drawable.circle_soft)
-                .title("连接电脑")
-                .message("手机和电脑连在同一个 Wi-Fi，电脑上打开「文件互传」")
+                .title(L.t("连接电脑"))
+                .message(L.t("手机和电脑连在同一个 Wi-Fi，电脑上打开「文件互传」"))
                 .view(pickerList)
-                .buttons("输入 IP", this::manualIp, "重新查找", this::findPc, false)
+                .buttons(L.t("输入 IP"), this::manualIp, L.t("重新查找"), this::findPc, false)
                 .show();
     }
 
@@ -341,7 +341,7 @@ public class MainActivity extends Activity {
         android.widget.ProgressBar spin = new android.widget.ProgressBar(this);
         spin.setIndeterminateTintList(ColorStateList.valueOf(getColor(R.color.accent)));
         row.addView(spin, new LinearLayout.LayoutParams(dp(22), dp(22)));
-        TextView t = label("正在查找附近的电脑…", 15, R.color.muted);
+        TextView t = label(L.t("正在查找附近的电脑…"), 15, R.color.muted);
         t.setPadding(dp(12), 0, 0, 0);
         row.addView(t);
         return row;
@@ -376,7 +376,7 @@ public class MainActivity extends Activity {
         row.addView(col, new LinearLayout.LayoutParams(0, -2, 1));
 
         // 已经连着的这台只显示「当前」，点了直接关闭，不重复配对
-        TextView go = pill(current && connected ? "当前" : "连接", !(current && connected));
+        TextView go = pill(current && connected ? L.t("当前") : L.t("连接"), !(current && connected));
         go.setPadding(dp(16), 0, dp(16), 0);
         row.addView(go, new LinearLayout.LayoutParams(-2, dp(36)));
 
@@ -397,10 +397,10 @@ public class MainActivity extends Activity {
         box.setOrientation(LinearLayout.VERTICAL);
         box.setBackgroundResource(R.drawable.bubble_bg);
         box.setPadding(dp(16), dp(14), dp(16), dp(14));
-        TextView t = label("没有找到电脑", 16, R.color.text);
+        TextView t = label(L.t("没有找到电脑"), 16, R.color.text);
         t.setTypeface(Typeface.DEFAULT_BOLD);
         box.addView(t);
-        TextView tips = label("· 电脑上已打开「文件互传」\n· 手机和电脑连的是同一个 Wi-Fi / 路由器\n· 电脑第一次运行时，防火墙弹窗里允许了「专用网络」\n还是不行的话，点「输入 IP」，地址在电脑端「设置 → 本机地址」",
+        TextView tips = label(L.t("· 电脑上已打开「文件互传」\n· 手机和电脑连的是同一个 Wi-Fi / 路由器\n· 电脑第一次运行时，防火墙弹窗里允许了「专用网络」\n还是不行的话，点「输入 IP」，地址在电脑端「设置 → 本机地址」"),
                 13, R.color.muted);
         tips.setLineSpacing(dp(4), 1);
         tips.setPadding(0, dp(6), 0, 0);
@@ -421,7 +421,7 @@ public class MainActivity extends Activity {
 
     private void manualIp() {
         EditText field = new EditText(this);
-        field.setHint("例如 192.168.1.5");
+        field.setHint(L.t("例如 192.168.1.5"));
         field.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
         field.setText(store.ip());
         field.setBackgroundResource(R.drawable.input_bg);
@@ -432,10 +432,10 @@ public class MainActivity extends Activity {
         field.setSingleLine(true);
         new Sheet(this)
                 .icon(R.drawable.ic_wifi, R.color.accent, R.drawable.circle_soft)
-                .title("输入电脑地址")
-                .message("在电脑端「设置 → 本机地址」里可以看到")
+                .title(L.t("输入电脑地址"))
+                .message(L.t("在电脑端「设置 → 本机地址」里可以看到"))
                 .view(field)
-                .buttons("取消", null, "连接", () -> {
+                .buttons(L.t("取消"), null, L.t("连接"), () -> {
                     String text = field.getText().toString().trim().replace("http://", "");
                     String ip = text;
                     int port = 8765;
@@ -452,7 +452,7 @@ public class MainActivity extends Activity {
                     io.execute(() -> {
                         Net.Pc pc = Net.hello(fIp, fPort, "");
                         ui.post(() -> {
-                            if (pc == null) showError("连接不上 " + fIp + ":" + fPort, "请确认地址正确、电脑上打开了「文件互传」，并且手机和电脑在同一个 Wi-Fi。");
+                            if (pc == null) showError(L.t("连接不上 ") + fIp + ":" + fPort, L.t("请确认地址正确、电脑上打开了「文件互传」，并且手机和电脑在同一个 Wi-Fi。"));
                             else pairWith(pc);
                         });
                     });
@@ -469,10 +469,10 @@ public class MainActivity extends Activity {
         spinBox.addView(spin, new LinearLayout.LayoutParams(dp(32), dp(32)));
         Dialog waiting = new Sheet(this)
                 .icon(R.drawable.ic_computer, R.color.accent, R.drawable.circle_soft)
-                .title("等待电脑确认")
-                .message("请在电脑「" + pc.name + "」弹出的窗口里点「允许连接」。")
+                .title(L.t("等待电脑确认"))
+                .message(L.f("请在电脑「%s」弹出的窗口里点「允许连接」。", pc.name))
                 .view(spinBox)
-                .buttons("取消", null, null, null, false)
+                .buttons(L.t("取消"), null, null, null, false)
                 .cancelable(false)
                 .show();
         io.execute(() -> {
@@ -481,7 +481,7 @@ public class MainActivity extends Activity {
                 store.save(pc, key);
                 ui.post(() -> {
                     waiting.dismiss();
-                    toast("已连接「" + pc.name + "」");
+                    toast(L.f("已连接「%s」", pc.name));
                     startNotifications();
                     connected = true;
                     lastFiles = "";
@@ -493,7 +493,7 @@ public class MainActivity extends Activity {
                 ui.post(() -> {
                     if (!waiting.isShowing()) return;
                     waiting.dismiss();
-                    showError("连接失败", e.getMessage());
+                    showError(L.t("连接失败"), e.getMessage());
                 });
             }
         });
@@ -504,14 +504,14 @@ public class MainActivity extends Activity {
                 .icon(R.drawable.ic_close, R.color.danger, R.drawable.circle_soft)
                 .title(title)
                 .message(message == null ? "" : message)
-                .buttons(null, null, "好", null, false)
+                .buttons(null, null, L.t("好"), null, false)
                 .show();
     }
 
     /** 投屏：先确认是否开启了「电脑操作手机」，再申请系统录屏权限 */
     private void startMirror() {
         if (!connected) {
-            toast("电脑不在线，连上后才能投屏");
+            toast(L.t("电脑不在线，连上后才能投屏"));
             return;
         }
         if (ControlService.enabled()) {
@@ -520,13 +520,13 @@ public class MainActivity extends Activity {
         }
         new Sheet(this)
                 .icon(R.drawable.ic_cast, R.color.accent, R.drawable.circle_soft)
-                .title("让电脑也能操作手机？")
-                .message("投屏后电脑上能看到手机画面。想在电脑上用鼠标点击、滑动、打字，需要在系统「无障碍」里打开「文件互传 · 电脑操作手机」。\n\n小米、华为等手机如果提示「受限设置」，先到 设置 → 应用 → 文件互传 → 右上角菜单 → 允许受限制的设置。")
-                .buttons("只投屏", this::requestProjection, "去开启", () -> {
+                .title(L.t("让电脑也能操作手机？"))
+                .message(L.t("投屏后电脑上能看到手机画面。想在电脑上用鼠标点击、滑动、打字，需要在系统「无障碍」里打开「文件互传 · 电脑操作手机」。\n\n小米、华为等手机如果提示「受限设置」，先到 设置 → 应用 → 文件互传 → 右上角菜单 → 允许受限制的设置。"))
+                .buttons(L.t("只投屏"), this::requestProjection, L.t("去开启"), () -> {
                     mirrorAfterSettings = true;
                     try {
                         startActivity(new Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS));
-                        toast("找到「文件互传 · 电脑操作手机」并打开");
+                        toast(L.t("找到「文件互传 · 电脑操作手机」并打开"));
                     } catch (RuntimeException e) {
                         mirrorAfterSettings = false;
                         requestProjection();
@@ -582,7 +582,7 @@ public class MainActivity extends Activity {
                     if (fFiles != null) renderFiles(fFiles);
                 } else if (changed && filesMode) {
                     lastFiles = "";
-                    renderFilesEmpty("电脑不在线，打开电脑端后会自动连接");
+                    renderFilesEmpty(L.t("电脑不在线，打开电脑端后会自动连接"));
                 }
             });
         });
@@ -595,7 +595,7 @@ public class MainActivity extends Activity {
         lastMsg = null;
         chatEmpty = true;
         chatList.removeAllViews();
-        chatList.addView(chatPlaceholder(store.paired() ? "正在加载聊天记录…" : "连接电脑后，在这里收发文字、图片和文件"));
+        chatList.addView(chatPlaceholder(store.paired() ? L.t("正在加载聊天记录…") : L.t("连接电脑后，在这里收发文字、图片和文件")));
     }
 
     private View chatPlaceholder(String text) {
@@ -643,7 +643,7 @@ public class MainActivity extends Activity {
         }
         if (chatEmpty && (chatList.getChildCount() == 0 || "placeholder".equals(chatList.getChildAt(0).getTag()))) {
             chatList.removeAllViews();
-            chatList.addView(chatPlaceholder("还没有消息\n发文字、图片或文件，电脑上会立刻收到"));
+            chatList.addView(chatPlaceholder(L.t("还没有消息\n发文字、图片或文件，电脑上会立刻收到")));
         }
         if (stick || mineAdded) scrollChatToBottom(true);
     }
@@ -750,7 +750,7 @@ public class MainActivity extends Activity {
         title.setMaxLines(2);
         title.setEllipsize(TextUtils.TruncateAt.MIDDLE);
         col.addView(title);
-        String state = !exists ? "已删除或移走" : downloaded.contains(name) ? "已下载" : "点击下载";
+        String state = !exists ? L.t("已删除或移走") : downloaded.contains(name) ? L.t("已下载") : L.t("点击下载");
         TextView sub = label(fmtSize(size) + " · " + state, 12, R.color.muted);
         sub.setPadding(0, dp(3), 0, 0);
         col.addView(sub);
@@ -766,7 +766,7 @@ public class MainActivity extends Activity {
         } else {
             card.setOnClickListener(v -> {
                 download(name);
-                sub.setText(fmtSize(size) + " · 已下载");
+                sub.setText(fmtSize(size) + L.t(" · 已下载"));
             });
         }
         return card;
@@ -799,7 +799,7 @@ public class MainActivity extends Activity {
                 ui.post(() -> {
                     input.setText(text);
                     input.setSelection(text.length());
-                    toast("没发出去：" + e.getMessage());
+                    toast(L.t("没发出去：") + e.getMessage());
                 });
             }
         });
@@ -816,7 +816,7 @@ public class MainActivity extends Activity {
         ProgressBar spin = new ProgressBar(this);
         root.addView(spin, new FrameLayout.LayoutParams(dp(40), dp(40), Gravity.CENTER));
         TextView save = new TextView(this);
-        save.setText("保存到手机");
+        save.setText(L.t("保存到手机"));
         save.setTextColor(Color.WHITE);
         save.setTextSize(15);
         save.setGravity(Gravity.CENTER);
@@ -830,7 +830,7 @@ public class MainActivity extends Activity {
         root.addView(save, slp);
         save.setOnClickListener(v -> {
             download(name);
-            save.setText("已开始保存");
+            save.setText(L.t("已开始保存"));
         });
         iv.setOnClickListener(v -> d.dismiss());
         d.setContentView(root);
@@ -867,10 +867,10 @@ public class MainActivity extends Activity {
         if (sig.equals(lastFiles)) return;
         lastFiles = sig;
         if (files.length() == 0) {
-            renderFilesEmpty("电脑接收文件夹是空的");
+            renderFilesEmpty(L.t("电脑接收文件夹是空的"));
             return;
         }
-        filesCount.setText("电脑接收文件夹 · " + files.length() + " 个文件 · 长按可删除");
+        filesCount.setText(L.f("电脑接收文件夹 · %d 个文件 · 长按可删除", files.length()));
         filesBox.removeAllViews();
         for (int i = 0; i < files.length(); i++) {
             JSONObject f = files.optJSONObject(i);
@@ -974,20 +974,20 @@ public class MainActivity extends Activity {
         DownloadManager.Request req = new DownloadManager.Request(Uri.parse(Net.downloadUrl(store, name)))
                 .addRequestHeader("X-Key", store.key())
                 .setTitle(name)
-                .setDescription("来自电脑「" + store.name() + "」")
+                .setDescription(L.f("来自电脑「%s」", store.name()))
                 .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "手机互传/" + name);
+                .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, L.downloadFolder() + "/" + name);
         getSystemService(DownloadManager.class).enqueue(req);
         downloaded.add(name);
-        toast("正在下载到 Download/手机互传");
+        toast(L.f("正在下载到 Download/%s", L.downloadFolder()));
     }
 
     private void confirmDelete(String name) {
         new Sheet(this)
                 .icon(R.drawable.ic_trash, R.color.danger, R.drawable.circle_soft)
-                .title("删除电脑上的文件？")
-                .message(name + "\n文件会移到电脑的回收站，需要时可以还原。")
-                .buttons("取消", null, "删除", () -> io.execute(() -> {
+                .title(L.t("删除电脑上的文件？"))
+                .message(name + L.t("\n文件会移到电脑的回收站，需要时可以还原。"))
+                .buttons(L.t("取消"), null, L.t("删除"), () -> io.execute(() -> {
                     try {
                         Net.postJson(store, "/api/delete", new JSONObject().put("name", name));
                         ui.post(() -> {
@@ -995,7 +995,7 @@ public class MainActivity extends Activity {
                             refresh(false);
                         });
                     } catch (Exception e) {
-                        ui.post(() -> toast("删除失败：" + e.getMessage()));
+                        ui.post(() -> toast(L.t("删除失败：") + e.getMessage()));
                     }
                 }), true)
                 .show();
@@ -1010,7 +1010,7 @@ public class MainActivity extends Activity {
         i.setType("*/*");
         i.addCategory(Intent.CATEGORY_OPENABLE);
         i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-        startActivityForResult(Intent.createChooser(i, "选择要发送的照片或文件"), REQ_PICK);
+        startActivityForResult(Intent.createChooser(i, L.t("选择要发送的照片或文件")), REQ_PICK);
     }
 
     @Override
@@ -1020,7 +1020,7 @@ public class MainActivity extends Activity {
             if (resultCode != RESULT_OK || data == null) return;
             Intent i = new Intent(this, MirrorService.class).putExtra("code", resultCode).putExtra("data", data);
             startForegroundService(i);
-            toast(ControlService.enabled() ? "开始投屏，电脑上可以查看和操作手机" : "开始投屏，电脑上点「手机」查看");
+            toast(ControlService.enabled() ? L.t("开始投屏，电脑上可以查看和操作手机") : L.t("开始投屏，电脑上点「手机」查看"));
             return;
         }
         if (requestCode != REQ_PICK || resultCode != RESULT_OK || data == null) return;
@@ -1045,8 +1045,8 @@ public class MainActivity extends Activity {
     }
 
     private void copy(String text) {
-        getSystemService(ClipboardManager.class).setPrimaryClip(ClipData.newPlainText("文件互传", text));
-        if (Build.VERSION.SDK_INT < 33) toast("已复制"); // 13 以上系统会自己提示
+        getSystemService(ClipboardManager.class).setPrimaryClip(ClipData.newPlainText(L.t("文件互传"), text));
+        if (Build.VERSION.SDK_INT < 33) toast(L.t("已复制")); // 13 以上系统会自己提示
     }
 
     // ---------- 小工具 ----------
@@ -1140,7 +1140,8 @@ public class MainActivity extends Activity {
         Date d = new Date((long) (sec * 1000));
         boolean today = new SimpleDateFormat("yyyyMMdd", Locale.US).format(d)
                 .equals(new SimpleDateFormat("yyyyMMdd", Locale.US).format(new Date()));
-        return new SimpleDateFormat(today ? "HH:mm" : "M月d日 HH:mm", Locale.CHINA).format(d);
+        if (today) return new SimpleDateFormat("HH:mm", Locale.US).format(d);
+        return L.en() ? new SimpleDateFormat("MMM d HH:mm", Locale.US).format(d) : new SimpleDateFormat("M月d日 HH:mm", Locale.CHINA).format(d);
     }
 
     /** 聊天里的时间分隔：今天只显示时间，昨天、一周内显示星期，更早显示日期。 */
@@ -1155,9 +1156,10 @@ public class MainActivity extends Activity {
         startToday.set(Calendar.MILLISECOND, 0);
         long days = (startToday.getTimeInMillis() - c.getTimeInMillis()) / 86_400_000L + (c.before(startToday) ? 1 : 0);
         if (!c.before(startToday)) return hm;
-        if (days == 1) return "昨天 " + hm;
-        if (days < 7) return new SimpleDateFormat("EEEE HH:mm", Locale.CHINA).format(c.getTime());
+        if (days == 1) return L.t("昨天 ") + hm;
+        if (days < 7) return new SimpleDateFormat("EEEE HH:mm", L.en() ? Locale.US : Locale.CHINA).format(c.getTime());
         boolean sameYear = c.get(Calendar.YEAR) == now.get(Calendar.YEAR);
+        if (L.en()) return new SimpleDateFormat(sameYear ? "MMM d HH:mm" : "MMM d, yyyy HH:mm", Locale.US).format(c.getTime());
         return new SimpleDateFormat(sameYear ? "M月d日 HH:mm" : "yyyy年M月d日 HH:mm", Locale.CHINA).format(c.getTime());
     }
 }

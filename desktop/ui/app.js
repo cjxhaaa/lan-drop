@@ -1,6 +1,7 @@
 const { invoke } = window.__TAURI__.core;
 const { listen } = window.__TAURI__.event;
 const $ = s => document.querySelector(s);
+translateDom();
 
 const state = {
   info: null,
@@ -37,7 +38,12 @@ function fmtDay(sec) {
   const d = new Date(sec * 1000), now = new Date();
   const days = Math.round((new Date(now.toDateString()) - new Date(d.toDateString())) / 864e5);
   if (days === 0) return hm(d);
-  if (days === 1) return `昨天 ${hm(d)}`;
+  if (days === 1) return `${t('昨天')} ${hm(d)}`;
+  if (LANG === 'en') {
+    if (days < 7) return `${d.toLocaleDateString('en-US', { weekday: 'long' })} ${hm(d)}`;
+    const opt = d.getFullYear() === now.getFullYear() ? { month: 'short', day: 'numeric' } : { year: 'numeric', month: 'short', day: 'numeric' };
+    return `${d.toLocaleDateString('en-US', opt)} ${hm(d)}`;
+  }
   if (days < 7) return `星期${'日一二三四五六'[d.getDay()]} ${hm(d)}`;
   return d.getFullYear() === now.getFullYear() ? `${d.getMonth() + 1}月${d.getDate()}日 ${hm(d)}` : `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 ${hm(d)}`;
 }
@@ -125,10 +131,10 @@ function renderEmptyChat() {
   chatList.innerHTML = `
     <div class="chat-empty">
       <div class="art">${icon('i-chat', 34)}</div>
-      <h2>手机和电脑的聊天记录会显示在这里</h2>
-      <p>在手机任意 App 里点「分享 → 发送到电脑」，或在下面输入文字、拖入文件发给手机。</p>
-      <p>手机还没连接？在手机上打开「文件互传」App，它会自动找到「${esc(state.info?.name || '这台电脑')}」${ip ? `；找不到时手动输入 <code>${esc(ip)}</code>` : ''}。</p>
-      <p>手机还没装 App？在「设置 → 给手机安装 App」里扫码下载。</p>
+      <h2>${t('手机和电脑的聊天记录会显示在这里')}</h2>
+      <p>${t('在手机任意 App 里点「分享 → 发送到电脑」，或在下面输入文字、拖入文件发给手机。')}</p>
+      <p>${t('手机还没连接？在手机上打开「文件互传」App，它会自动找到「{name}」', { name: esc(state.info?.name || t('这台电脑')) })}${ip ? t('；找不到时手动输入 {ip}', { ip: `<code>${esc(ip)}</code>` }) : ''}${LANG === 'en' ? '.' : '。'}</p>
+      <p>${t('手机还没装 App？在「设置 → 给手机安装 App」里扫码下载。')}</p>
     </div>`;
 }
 
@@ -147,7 +153,7 @@ function messageHtml(m, prev) {
   } else if (IMAGE.test(m.name) && m.exists) {
     body = `<div class="bubble image" data-name="${esc(m.name)}" title="${esc(m.name)}"><img draggable="false" loading="lazy" src="${fileUrl(m.name)}" alt=""></div>`;
   } else if (IMAGE.test(m.name)) {
-    body = `<div class="bubble image gone"><div class="image-gone">图片已删除<br>或已移走</div></div>`;
+    body = `<div class="bubble image gone"><div class="image-gone">${t('图片已删除<br>或已移走')}</div></div>`;
   } else {
     body = `<div class="bubble file${m.exists ? '' : ' gone'}" data-name="${esc(m.name)}" title="${esc(m.name)}">
       <div class="meta"><div class="name">${esc(m.name)}</div><div class="size">${fmtSize(m.size || 0)}</div></div>${ftype(m.name)}</div>`;
@@ -235,7 +241,7 @@ listen('transfer', ({ payload: t }) => {
     transfers.delete(t.id);
   } else if (t.state === 'failed') {
     el.querySelector('.bubble').classList.add('failed');
-    size.textContent = '传输中断';
+    size.textContent = t('传输中断');
     setTimeout(() => { el.remove(); transfers.delete(t.id); }, 5000);
   } else {
     const pct = t.total ? t.done / t.total * 100 : 0;
@@ -259,11 +265,11 @@ input.addEventListener('keydown', e => {
 });
 $('#btnAttach').onclick = async () => {
   const r = await call('pick_files');
-  if (r.copied) toast(`已发送 ${r.copied} 个文件`);
+  if (r.copied) toast(t('已发送 {n} 个文件', { n: r.copied }));
 };
 $('#btnClipboard').onclick = async () => {
   const text = await call('clipboard_read');
-  if (text) sendText(text); else toast('剪贴板里没有文字');
+  if (text) sendText(text); else toast(t('剪贴板里没有文字'));
 };
 // Ctrl+V 粘贴截图或文件
 input.addEventListener('paste', async e => {
@@ -272,7 +278,7 @@ input.addEventListener('paste', async e => {
   e.preventDefault();
   for (const f of files) {
     const stamp = new Date().toISOString().replace(/\D/g, '').slice(0, 14);
-    const name = f.name && f.name !== 'image.png' ? f.name : `截图_${stamp}.${(f.type.split('/')[1] || 'png').replace('jpeg', 'jpg')}`;
+    const name = f.name && f.name !== 'image.png' ? f.name : `${t('截图')}_${stamp}.${(f.type.split('/')[1] || 'png').replace('jpeg', 'jpg')}`;
     const buf = new Uint8Array(await f.arrayBuffer());
     await call('paste_file', buf, { headers: { 'x-name': encodeURIComponent(name) } });
   }
@@ -299,12 +305,12 @@ chatList.addEventListener('contextmenu', e => {
   const items = [];
   if (m.kind === 'text') {
     const sel = String(window.getSelection());
-    items.push([sel ? '复制选中文字' : '复制', () => copy(sel || m.text)]);
+    items.push([t(sel ? '复制选中文字' : '复制'), () => copy(sel || m.text)]);
   } else if (m.exists) {
-    items.push(['打开', () => call('open_item', { name: m.name })]);
-    items.push(['在文件夹中显示', () => call('reveal_item', { name: m.name })]);
+    items.push([t('打开'), () => call('open_item', { name: m.name })]);
+    items.push([t('在文件夹中显示'), () => call('reveal_item', { name: m.name })]);
   }
-  items.push('-', ['删除这条记录', async () => {
+  items.push('-', [t('删除这条记录'), async () => {
     await call('delete_message', { seq: m.seq });
     state.messages = state.messages.filter(x => x.seq !== m.seq);
     renderChat();
@@ -314,7 +320,7 @@ chatList.addEventListener('contextmenu', e => {
 
 async function copy(text) {
   await call('clipboard_write', { text });
-  toast('已复制');
+  toast(t('已复制'));
 }
 
 // ---------- 文件 ----------
@@ -336,14 +342,14 @@ function visibleFiles() {
 function renderFiles() {
   const box = $('#files');
   box.className = state.fileView;
-  $('#count').textContent = state.files.length ? `${state.files.length} 个文件` : '';
+  $('#count').textContent = state.files.length ? t('{n} 个文件', { n: state.files.length }) : '';
   const files = visibleFiles();
   if (!state.files.length) {
-    box.innerHTML = `<div class="empty">${icon('i-files', 40)}<h2>接收文件夹是空的</h2><div>手机发来的文件会出现在这里，也可以把电脑上的文件拖进来</div></div>`;
+    box.innerHTML = `<div class="empty">${icon('i-files', 40)}<h2>${t('接收文件夹是空的')}</h2><div>${t('手机发来的文件会出现在这里，也可以把电脑上的文件拖进来')}</div></div>`;
     return;
   }
   if (!files.length) {
-    box.innerHTML = `<div class="empty"><h2>没有找到「${esc(state.query)}」</h2></div>`;
+    box.innerHTML = `<div class="empty"><h2>${t('没有找到「{q}」', { q: esc(state.query) })}</h2></div>`;
     return;
   }
   box.innerHTML = files.map(f => {
@@ -351,7 +357,7 @@ function renderFiles() {
     return `<div class="tile${state.selected.has(f.name) ? ' sel' : ''}" data-name="${esc(f.name)}" title="${esc(f.name)}&#10;${fmtSize(f.size)} · ${fmtDay(f.mtime)}">
       <div class="thumb">${thumb}</div>
       <div class="fname">${esc(f.name)}</div>
-      ${f.from ? `<div class="from">来自 ${esc(f.from)}</div>` : '<div class="from"></div>'}
+      ${f.from ? `<div class="from">${t('来自 {from}', { from: esc(f.from) })}</div>` : '<div class="from"></div>'}
       <div class="info">${fmtSize(f.size)} · ${fmtDay(f.mtime)}</div>
     </div>`;
   }).join('');
@@ -402,12 +408,12 @@ $('#files').addEventListener('contextmenu', e => {
   const names = [...state.selected];
   const items = names.length
     ? [
-        names.length === 1 && ['打开', () => call('open_item', { name: names[0] })],
-        ['在资源管理器中显示', () => call('reveal_item', { name: names[0] })],
+        names.length === 1 && [t('打开'), () => call('open_item', { name: names[0] })],
+        [t('在资源管理器中显示'), () => call('reveal_item', { name: names[0] })],
         '-',
-        [`移到回收站${names.length > 1 ? `（${names.length} 个）` : ''}`, deleteSelected, 'danger'],
+        [names.length > 1 ? t('移到回收站（{n} 个）', { n: names.length }) : t('移到回收站'), deleteSelected, 'danger'],
       ]
-    : [['在资源管理器中打开', () => call('open_folder')], ['刷新', () => loadFiles(true)]];
+    : [[t('在资源管理器中打开'), () => call('open_folder')], [t('刷新'), () => loadFiles(true)]];
   showCtx(e.clientX, e.clientY, items.filter(Boolean));
 });
 
@@ -425,7 +431,7 @@ document.addEventListener('mousemove', async e => {
   } else return;
   state.draggingOut = true;
   try { await invoke('start_drag', { names }); }
-  catch (err) { toast('拖动失败：' + err); }
+  catch (err) { toast(t('拖动失败：') + err); }
   finally {
     state.draggingOut = false;
     $('#dropOverlay').classList.remove('show');
@@ -445,11 +451,11 @@ document.addEventListener('mouseup', e => {
 async function deleteSelected() {
   const names = [...state.selected];
   if (!names.length) return;
-  const label = names.length === 1 ? `「${names[0]}」` : `这 ${names.length} 个文件`;
-  if (!await confirmDialog('移到回收站', `把${label}移到回收站？手机上也将看不到它们，需要时可以从回收站还原。`, '移到回收站')) return;
+  const label = names.length === 1 ? t('「{name}」', { name: names[0] }) : t('这 {n} 个文件', { n: names.length });
+  if (!await confirmDialog(t('移到回收站'), t('把{label}移到回收站？手机上也将看不到它们，需要时可以从回收站还原。', { label }), t('移到回收站'))) return;
   await call('delete_items', { names });
   state.selected.clear();
-  toast('已移到回收站');
+  toast(t('已移到回收站'));
   loadFiles(true);
 }
 
@@ -512,8 +518,8 @@ window.__TAURI__.webview.getCurrentWebview().onDragDropEvent(async e => {
     overlay.classList.remove('show');
     if (!p.paths?.length) return;
     const r = await call('import_paths', { paths: p.paths });
-    let msg = r.copied ? `已发送 ${r.copied} 个文件` : '没有可发送的文件';
-    if (r.skipped_dirs) msg += `，${r.skipped_dirs} 个文件夹需要先压缩`;
+    let msg = r.copied ? t('已发送 {n} 个文件', { n: r.copied }) : t('没有可发送的文件');
+    if (r.skipped_dirs) msg += t('，{n} 个文件夹需要先压缩', { n: r.skipped_dirs });
     toast(msg);
     if (state.view === 'files') loadFiles(true);
   }
@@ -527,7 +533,7 @@ async function refreshMirror() {
   $('#mirrorWrap').hidden = !s.active;
   $('#liveDot').hidden = !s.active;
   $('#mirrorStatus').textContent = s.active
-    ? `${s.device || '手机'} 正在投屏 · ${s.control ? '可以用鼠标键盘操作' : '手机没开无障碍，只能查看'}`
+    ? t(s.control ? '{device} 正在投屏 · 可以用鼠标键盘操作' : '{device} 正在投屏 · 手机没开无障碍，只能查看', { device: s.device || t('手机') })
     : '';
   if (s.active && !mirrorImg.src.includes('/api/mirror/view')) {
     mirrorImg.src = `http://127.0.0.1:${state.info?.port || 8765}/api/mirror/view?t=${Date.now()}`;
@@ -537,8 +543,8 @@ async function refreshMirror() {
   if (s.active && state.view === 'phone') $('#mirrorType').focus();
 }
 listen('mirror', ({ payload }) => {
-  if (payload.active) { toast(`${payload.device} 开始投屏`); showView('phone'); }
-  else toast('手机已停止投屏');
+  if (payload.active) { toast(t('{device} 开始投屏', { device: payload.device })); showView('phone'); }
+  else toast(t('手机已停止投屏'));
   refreshMirror();
 });
 listen('mirror-control', refreshMirror);
@@ -609,21 +615,20 @@ mirrorType.addEventListener('keydown', e => {
 async function loadDevices() {
   const devices = await invoke('get_devices');
   const online = devices.filter(d => d.online);
-  $('#peerName').textContent = online[0]?.name || devices[0]?.name || '我的手机';
+  $('#peerName').textContent = online[0]?.name || devices[0]?.name || t('我的手机');
   $('#peerDot').classList.toggle('on', online.length > 0);
   $('#peerStatus').textContent = online.length
-    ? (online.length > 1 ? `${online.length} 台手机在线` : '在线')
-    : '离线 · 在手机上打开 App 即可连接';
+    ? (online.length > 1 ? t('{n} 台手机在线', { n: online.length }) : t('在线'))
+    : t('离线 · 在手机上打开 App 即可连接');
   return devices;
 }
 listen('pair-request', ({ payload }) => {
-  $('#pairDevice').textContent = `「${payload.device}」`;
-  $('#pairIp').textContent = payload.ip;
+  $('#pairText').textContent = t('{device}（{ip}）想要连接这台电脑。允许后，它可以向电脑发送文件和文字，并下载接收文件夹里的文件。', { device: t('「{name}」', { name: payload.device }), ip: payload.ip });
   $('#pairModal').classList.add('show');
   $('#pairAllow').focus();
 });
 listen('pair-closed', () => $('#pairModal').classList.remove('show'));
-listen('paired', ({ payload }) => { toast(`已连接 ${payload.device}`); loadDevices(); });
+listen('paired', ({ payload }) => { toast(t('已连接 {device}', { device: payload.device })); loadDevices(); });
 $('#pairAllow').onclick = () => { invoke('pair_respond', { allow: true }); $('#pairModal').classList.remove('show'); };
 $('#pairDeny').onclick = () => { invoke('pair_respond', { allow: false }); $('#pairModal').classList.remove('show'); };
 
@@ -635,6 +640,7 @@ async function loadSettings() {
   $('#setAutostart').checked = i.autostart;
   $('#setRemote').checked = i.remote;
   $('#setNotify').checked = i.notify;
+  renderLang(i.lang);
   renderHelper(i.helper);
   invoke('install_qr').then(q => {
     $('#installGroup').hidden = !q.available;
@@ -642,53 +648,53 @@ async function loadSettings() {
   });
   renderSendto(i.sendto);
   // 只显示首选地址，其余（多为虚拟网卡）放在悬停提示里
-  $('#setAddr').textContent = i.ips.length ? `${i.ips[0]}:${i.port}` : '未连接局域网';
-  $('#setAddr').title = i.ips.length > 1 ? '其他地址：' + i.ips.slice(1).map(ip => `${ip}:${i.port}`).join('、') : '';
+  $('#setAddr').textContent = i.ips.length ? `${i.ips[0]}:${i.port}` : t('未连接局域网');
+  $('#setAddr').title = i.ips.length > 1 ? t('其他地址：') + i.ips.slice(1).map(ip => `${ip}:${i.port}`).join(LANG === 'en' ? ', ' : '、') : '';
   const devices = await loadDevices();
   $('#setDevices').innerHTML = devices.length
     ? devices.map(d => `<div class="row">
         <div class="ico${d.online ? '' : ' neutral'}">${icon('i-phone', 19)}</div>
         <div class="txt"><div class="title">${esc(d.name)}</div><div class="desc">${esc(d.ip)}</div></div>
-        <div class="state" style="${d.online ? '' : 'color:var(--ink-3)'}"><span class="dot${d.online ? ' on' : ''}"></span>${d.online ? '在线' : '离线'}</div>
+        <div class="state" style="${d.online ? '' : 'color:var(--ink-3)'}"><span class="dot${d.online ? ' on' : ''}"></span>${t(d.online ? '在线' : '离线')}</div>
       </div>`).join('')
     : `<div class="row"><div class="ico neutral">${icon('i-phone', 19)}</div>
-        <div class="txt"><div class="title">还没有手机连接</div><div class="desc">在手机上打开「文件互传」App，连同一个 Wi-Fi，它会自动找到这台电脑</div></div></div>`;
+        <div class="txt"><div class="title">${t('还没有手机连接')}</div><div class="desc">${t('在手机上打开「文件互传」App，连同一个 Wi-Fi，它会自动找到这台电脑')}</div></div></div>`;
   const qr = await invoke('browser_qr');
   $('#setQr').innerHTML = qr.svg;
   $('#setUrl').textContent = qr.url;
 }
 function renderSendto(added) {
   $('#setSendtoBox').innerHTML = added
-    ? `<span class="state">${icon('i-check', 16)}已添加</span>`
-    : '<button class="btn" id="setSendto">添加</button>';
+    ? `<span class="state">${icon('i-check', 16)}${t('已添加')}</span>`
+    : `<button class="btn" id="setSendto">${t('添加')}</button>`;
   if (!added) $('#setSendto').onclick = async () => {
     await call('add_sendto');
     renderSendto(true);
-    toast('右键任意文件 → 发送到 → 手机互传');
+    toast(t('右键任意文件 → 发送到 → 手机互传'));
   };
 }
 $('#setOpenDir').onclick = () => call('open_folder');
 $('#setChooseDir').onclick = async () => {
   const dir = await call('choose_folder');
-  if (dir) { $('#setDir').textContent = dir; toast('接收文件夹已更改'); lastSig = ''; }
+  if (dir) { $('#setDir').textContent = dir; toast(t('接收文件夹已更改')); lastSig = ''; }
 };
 $('#setAutostart').onchange = async e => {
-  try { await call('set_autostart', { enable: e.target.checked }); toast(e.target.checked ? '已开启开机自动启动' : '已关闭开机自动启动'); }
+  try { await call('set_autostart', { enable: e.target.checked }); toast(t(e.target.checked ? '已开启开机自动启动' : '已关闭开机自动启动')); }
   catch { e.target.checked = !e.target.checked; }
 };
 function renderHelper(active) {
   $('#helperBox').innerHTML = active
-    ? `<span class="state">${icon('i-check', 16)}已授权</span>`
-    : '<button class="btn" id="setHelper">授权</button>';
+    ? `<span class="state">${icon('i-check', 16)}${t('已授权')}</span>`
+    : `<button class="btn" id="setHelper">${t('授权')}</button>`;
   if (!active) $('#setHelper').onclick = startHelper;
   $('#remoteHelper').hidden = active || $('#remoteHelper').hidden;
 }
 async function startHelper() {
-  toast('请在 Windows 弹出的确认框里点「是」');
+  toast(t('请在 Windows 弹出的确认框里点「是」'));
   await call('start_input_helper');
   renderHelper(true);
   $('#remoteHelper').hidden = true;
-  toast('已授权，手机现在可以操作管理员权限的程序了');
+  toast(t('已授权，手机现在可以操作管理员权限的程序了'));
 }
 $('#remoteHelper').onclick = startHelper;
 let blockedToastAt = 0;
@@ -696,46 +702,58 @@ listen('remote-blocked', () => {
   $('#remoteHelper').hidden = false;
   if (Date.now() - blockedToastAt > 10000) {
     blockedToastAt = Date.now();
-    toast('手机点到的是管理员权限的程序，需要授权才能操作');
+    toast(t('手机点到的是管理员权限的程序，需要授权才能操作'));
   }
 });
 listen('open-chat', () => showView('chat'));
+function renderLang(lang) {
+  for (const b of document.querySelectorAll('#setLang button')) b.classList.toggle('on', b.dataset.lang === lang);
+}
+for (const b of document.querySelectorAll('#setLang button')) {
+  b.onclick = async () => {
+    const en = await call('set_lang', { lang: b.dataset.lang });
+    location.hash = 'settings'; // 刷新后回到设置页
+    if (!syncLang(en)) renderLang(b.dataset.lang);
+  };
+}
 $('#setNotify').onchange = async e => {
   await call('set_notify', { enable: e.target.checked });
-  toast(e.target.checked ? '已开启消息通知' : '已关闭消息通知');
+  toast(t(e.target.checked ? '已开启消息通知' : '已关闭消息通知'));
 };
 $('#setRemote').onchange = async e => {
   await call('set_remote', { enable: e.target.checked });
-  toast(e.target.checked ? '已允许手机控制这台电脑' : '已关闭远程控制');
+  toast(t(e.target.checked ? '已允许手机控制这台电脑' : '已关闭远程控制'));
 };
 listen('remote-session', ({ payload }) => {
   $('#remoteBar').hidden = !payload.active;
-  if (payload.active) $('#remoteText').textContent = `${payload.device} 正在控制这台电脑`;
+  if (payload.active) $('#remoteText').textContent = t('{device} 正在控制这台电脑', { device: payload.device });
 });
 $('#remoteStop').onclick = async () => {
   await call('remote_disconnect');
   $('#remoteBar').hidden = true;
-  toast('已断开远程控制');
+  toast(t('已断开远程控制'));
 };
-$('#setPin').onclick = async () => { await call('pin_quick_access'); toast('已固定到资源管理器「快速访问」'); };
+$('#setPin').onclick = async () => { await call('pin_quick_access'); toast(t('已固定到资源管理器「快速访问」')); };
 $('#setClear').onclick = async () => {
-  if (!await confirmDialog('清空聊天记录', '电脑和手机上的聊天记录都会被清空。接收文件夹里的文件会保留。', '清空')) return;
+  if (!await confirmDialog(t('清空聊天记录'), t('电脑和手机上的聊天记录都会被清空。接收文件夹里的文件会保留。'), t('清空'))) return;
   await call('clear_history');
-  toast('聊天记录已清空');
+  toast(t('聊天记录已清空'));
 };
 $('#setReset').onclick = async () => {
-  if (!await confirmDialog('重置配对', '所有已连接的手机都需要重新配对，浏览器扫码链接也会失效。', '重置')) return;
+  if (!await confirmDialog(t('重置配对'), t('所有已连接的手机都需要重新配对，浏览器扫码链接也会失效。'), t('重置'))) return;
   await call('reset_key');
-  toast('已重置，手机需要重新连接');
+  toast(t('已重置，手机需要重新连接'));
   loadSettings();
 };
 
 // ---------- 启动 ----------
 (async () => {
   state.info = await invoke('get_info');
+  if (syncLang(state.info.en)) return;
   setFileView(state.fileView);
   await Promise.all([loadMessages(true), loadDevices(), refreshMirror()]);
   input.focus();
+  if (location.hash === '#settings') { history.replaceState(null, '', location.pathname); showView('settings'); }
   setInterval(() => loadDevices(), 3000);
   setInterval(() => loadMessages(false), 5000);                 // 兜底：事件丢失时补拉
   setInterval(() => { if (state.view === 'files' && !document.hidden) loadFiles(); }, 2000);

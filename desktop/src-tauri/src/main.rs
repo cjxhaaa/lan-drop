@@ -10,7 +10,7 @@ mod system;
 
 use serde::Serialize;
 use serde_json::json;
-use state::{list_dir, resolve_shared, safe_name, show_main, unique_path, AppState, HTTP_PORT};
+use state::{list_dir, resolve_shared, safe_name, show_main, tr, unique_path, AppState, HTTP_PORT};
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::path::PathBuf;
@@ -47,11 +47,32 @@ fn get_info(st: St) -> serde_json::Value {
         "port": HTTP_PORT,
         "dir": st.dir(),
         "autostart": system::autostart_enabled(),
-        "sendto": system::sendto_link().exists(),
+        "sendto": system::sendto_added(),
         "remote": st.remote_enabled(),
         "helper": remote::helper_active(),
         "notify": st.notify_enabled(),
+        "lang": st.lang(),
+        "en": state::is_en(),
     })
+}
+
+/// 切换界面语言，返回切换后是否为英文；托盘菜单、窗口标题跟着换
+#[tauri::command]
+fn set_lang(app: tauri::AppHandle, st: St, lang: String) -> bool {
+    st.set_lang(&lang);
+    notify::init();
+    apply_lang_to_shell(&app);
+    state::is_en()
+}
+
+fn apply_lang_to_shell(app: &tauri::AppHandle) {
+    if let Some(w) = app.get_webview_window("main") {
+        let _ = w.set_title(tr("文件互传", "LanDrop"));
+    }
+    if let (Some(tray), Ok(menu)) = (app.tray_by_id("main"), tray_menu(app)) {
+        let _ = tray.set_menu(Some(menu));
+        let _ = tray.set_tooltip(Some(tr("文件互传", "LanDrop")));
+    }
 }
 
 #[tauri::command]
@@ -93,9 +114,9 @@ fn get_messages(st: St, after: u64) -> Vec<serde_json::Value> {
 fn send_text(st: St, text: String) -> Result<(), String> {
     let text = text.trim();
     if text.is_empty() {
-        return Err("内容为空".into());
+        return Err(tr("内容为空", "Message is empty").into());
     }
-    st.add_text(text, "pc", "电脑");
+    st.add_text(text, "pc", tr("电脑", "PC"));
     Ok(())
 }
 
@@ -112,7 +133,7 @@ fn clear_history(st: St) {
 
 #[tauri::command]
 fn open_item(st: St, name: String) -> Result<(), String> {
-    let path = resolve_shared(&st.dir(), &name).ok_or("文件不存在")?;
+    let path = resolve_shared(&st.dir(), &name).ok_or(tr("文件不存在", "File not found"))?;
     open::that_detached(path).map_err(|e| e.to_string())
 }
 
@@ -170,7 +191,7 @@ async fn send_paths(st: Arc<AppState>, paths: Vec<PathBuf>) -> Result<ImportResu
             let dest = if p.parent() == Some(dir.as_path()) { p.clone() } else { unique_path(&dir, &name) };
             if dest == p || std::fs::copy(&p, &dest).is_ok() {
                 let size = dest.metadata().map(|m| m.len()).unwrap_or(0);
-                st2.add_file(&dest.file_name().unwrap().to_string_lossy(), size, "pc", "电脑");
+                st2.add_file(&dest.file_name().unwrap().to_string_lossy(), size, "pc", tr("电脑", "PC"));
                 r.copied += 1;
             }
         }
@@ -189,7 +210,7 @@ async fn import_paths(st: State<'_, Arc<AppState>>, paths: Vec<String>) -> Resul
 
 #[tauri::command]
 async fn pick_files(st: State<'_, Arc<AppState>>) -> Result<ImportResult, String> {
-    let picked = rfd::AsyncFileDialog::new().set_title("选择要发送到手机的文件").pick_files().await;
+    let picked = rfd::AsyncFileDialog::new().set_title(tr("选择要发送到手机的文件", "Choose files to send to your phone")).pick_files().await;
     let paths = picked.unwrap_or_default().iter().map(|f| f.path().to_path_buf()).collect();
     send_paths(st.inner().clone(), paths).await
 }
@@ -198,13 +219,13 @@ async fn pick_files(st: State<'_, Arc<AppState>>) -> Result<ImportResult, String
 #[tauri::command]
 async fn paste_file(st: State<'_, Arc<AppState>>, request: tauri::ipc::Request<'_>) -> Result<(), String> {
     let tauri::ipc::InvokeBody::Raw(data) = request.body() else {
-        return Err("粘贴的内容无法识别".into());
+        return Err(tr("粘贴的内容无法识别", "Unrecognized clipboard content").into());
     };
-    let raw_name = request.headers().get("x-name").and_then(|v| v.to_str().ok()).unwrap_or("粘贴的文件");
+    let raw_name = request.headers().get("x-name").and_then(|v| v.to_str().ok()).unwrap_or(tr("粘贴的文件", "pasted file"));
     let name = safe_name(&percent_encoding::percent_decode_str(raw_name).decode_utf8_lossy());
     let dest = unique_path(&st.dir(), &name);
-    std::fs::write(&dest, data).map_err(|e| format!("保存失败：{e}"))?;
-    st.add_file(&dest.file_name().unwrap().to_string_lossy(), data.len() as u64, "pc", "电脑");
+    std::fs::write(&dest, data).map_err(|e| format!("{}{e}", tr("保存失败：", "Save failed: ")))?;
+    st.add_file(&dest.file_name().unwrap().to_string_lossy(), data.len() as u64, "pc", tr("电脑", "PC"));
     st.emit("files-changed", ());
     Ok(())
 }
@@ -237,7 +258,7 @@ fn pair_respond(st: St, allow: bool) {
 #[tauri::command]
 async fn choose_folder(st: State<'_, Arc<AppState>>) -> Result<Option<String>, String> {
     let picked = rfd::AsyncFileDialog::new()
-        .set_title("选择接收文件夹")
+        .set_title(tr("选择接收文件夹", "Choose receiving folder"))
         .set_directory(st.dir())
         .pick_folder()
         .await;
@@ -358,20 +379,23 @@ fn wake_existing() -> bool {
     resp.contains("\"app\":\"ft\"")
 }
 
-fn build_tray(app: &tauri::App) -> tauri::Result<()> {
-    let menu = Menu::with_items(
+fn tray_menu<R: tauri::Runtime, M: Manager<R>>(app: &M) -> tauri::Result<Menu<R>> {
+    Menu::with_items(
         app,
         &[
-            &MenuItem::with_id(app, "show", "显示主窗口", true, None::<&str>)?,
-            &MenuItem::with_id(app, "folder", "打开接收文件夹", true, None::<&str>)?,
+            &MenuItem::with_id(app, "show", tr("显示主窗口", "Show window"), true, None::<&str>)?,
+            &MenuItem::with_id(app, "folder", tr("打开接收文件夹", "Open receiving folder"), true, None::<&str>)?,
             &PredefinedMenuItem::separator(app)?,
-            &MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?,
+            &MenuItem::with_id(app, "quit", tr("退出", "Quit"), true, None::<&str>)?,
         ],
-    )?;
+    )
+}
+
+fn build_tray(app: &tauri::App) -> tauri::Result<()> {
     TrayIconBuilder::with_id("main")
         .icon(app.default_window_icon().unwrap().clone())
-        .tooltip("文件互传")
-        .menu(&menu)
+        .tooltip(tr("文件互传", "LanDrop"))
+        .menu(&tray_menu(app)?)
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id.as_ref() {
             "show" => show_main(app),
@@ -404,17 +428,23 @@ fn main() {
         Ok(l) => l,
         Err(_) => {
             if !wake_existing() {
+                // 还没读配置，跟随系统语言
+                let en = state::system_is_en();
                 rfd::MessageDialog::new()
-                    .set_title("文件互传")
-                    .set_description(format!("端口 {HTTP_PORT} 被其他程序占用，无法启动。"))
+                    .set_title(if en { "LanDrop" } else { "文件互传" })
+                    .set_description(if en {
+                        format!("Port {HTTP_PORT} is in use by another program. LanDrop can't start.")
+                    } else {
+                        format!("端口 {HTTP_PORT} 被其他程序占用，无法启动。")
+                    })
                     .set_level(rfd::MessageLevel::Error)
                     .show();
             }
             return;
         }
     };
-    notify::init();
     let state = Arc::new(AppState::load());
+    notify::init();
     let minimized = std::env::args().any(|a| a == "--minimized");
 
     tauri::Builder::default()
@@ -447,6 +477,7 @@ fn main() {
             remote_disconnect,
             start_input_helper,
             set_notify,
+            set_lang,
             install_qr,
             mirror_state,
             mirror_input,
@@ -457,6 +488,7 @@ fn main() {
             let _ = state.app.set(app.handle().clone());
             server::start(listener, state.clone());
             build_tray(app)?;
+            apply_lang_to_shell(app.handle());
             if !minimized {
                 show_main(app.handle());
             }

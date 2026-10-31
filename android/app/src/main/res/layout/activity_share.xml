@@ -28,7 +28,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="发送到电脑"
+        android:text="@string/share_label"
         android:textColor="@color/text"
         android:textSize="19sp"
         android:textStyle="bold" />
@@ -40,7 +40,7 @@
         android:layout_marginTop="6dp"
         android:gravity="center"
         android:lineSpacingExtra="2dp"
-        android:text="正在连接电脑…"
+        android:text="@string/connecting_pc"
         android:textColor="@color/muted"
         android:textSize="14sp" />
 
@@ -94,7 +94,7 @@
             android:layout_weight="1"
             android:background="@drawable/pill_soft"
             android:gravity="center"
-            android:text="取消"
+            android:text="@string/cancel"
             android:textColor="@color/accent"
             android:textSize="15sp"
             android:textStyle="bold" />

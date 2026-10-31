@@ -20,7 +20,7 @@ pub fn init() {
     let icon = base.join("icon.png");
     let _ = std::fs::write(&icon, ICON);
     if let Ok((key, _)) = RegKey::predef(HKEY_CURRENT_USER).create_subkey(format!(r"Software\Classes\AppUserModelId\{AUMID}")) {
-        let _ = key.set_value("DisplayName", &"文件互传");
+        let _ = key.set_value("DisplayName", &crate::state::tr("文件互传", "LanDrop"));
         let _ = key.set_value("IconUri", &icon.to_string_lossy().into_owned());
     }
     unsafe {

@@ -45,6 +45,7 @@ pub fn start(listener: std::net::TcpListener, st: St) {
         .route("/api/remote/stream", get(remote_stream))
         .route("/api/remote/input", post(remote_input))
         .layer(DefaultBodyLimit::max(10 * 1024 * 1024)) // 只影响 JSON；上传走流式 Body，不受限制
+        .layer(axum::middleware::from_fn(lang_scope))
         .with_state(st.clone());
 
     tauri::async_runtime::spawn(async move {
@@ -99,15 +100,32 @@ fn ctx(st: &AppState, addr: SocketAddr, headers: &HeaderMap, q: &HashMap<String,
     let device = if !device.is_empty() {
         device
     } else if local {
-        "电脑".into()
+        l("电脑", "PC").into()
     } else {
-        "手机浏览器".into()
+        l("手机浏览器", "Phone browser").into()
     };
     Ctx { local, authed, device }
 }
 
 fn side(c: &Ctx) -> &'static str {
     if c.local { "pc" } else { "phone" }
+}
+
+tokio::task_local! {
+    /// 这次请求要用英文回复（看 App 发来的 X-Lang，或浏览器的 Accept-Language）
+    static REQ_EN: bool;
+}
+
+async fn lang_scope(req: axum::extract::Request, next: axum::middleware::Next) -> Response {
+    let h = req.headers();
+    let lang = h.get("x-lang").or_else(|| h.get(header::ACCEPT_LANGUAGE)).and_then(|v| v.to_str().ok()).unwrap_or("");
+    let en = if lang.trim().is_empty() { crate::state::is_en() } else { !lang.trim().to_ascii_lowercase().starts_with("zh") };
+    REQ_EN.scope(en, next.run(req)).await
+}
+
+/// 按请求方的语言二选一
+fn l(zh: &'static str, en: &'static str) -> &'static str {
+    if REQ_EN.try_with(|v| *v).unwrap_or_else(|_| crate::state::is_en()) { en } else { zh }
 }
 
 fn err(code: StatusCode, msg: &str) -> Response {
@@ -117,7 +135,10 @@ fn err(code: StatusCode, msg: &str) -> Response {
 fn forbidden() -> Response {
     (
         StatusCode::FORBIDDEN,
-        Html("<meta name=viewport content='width=device-width'><h2 style='font-family:sans-serif;padding:24px'>请用电脑上显示的二维码重新扫码访问</h2>"),
+        Html(format!(
+            "<meta name=viewport content='width=device-width'><h2 style='font-family:sans-serif;padding:24px'>{}</h2>",
+            l("请用电脑上显示的二维码重新扫码访问", "Please scan the QR code shown on the PC again")
+        )),
     )
         .into_response()
 }
@@ -142,7 +163,7 @@ pub const APP_APK: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/app.apk"));
 /// 手机 App 安装包：不需要配对就能下载，方便第一次安装
 async fn app_apk() -> Response {
     if APP_APK.is_empty() {
-        return err(StatusCode::NOT_FOUND, "这个版本没有内置手机 App");
+        return err(StatusCode::NOT_FOUND, l("这个版本没有内置手机 App", "This build doesn't include the Android app"));
     }
     Response::builder()
         .header(header::CONTENT_TYPE, "application/vnd.android.package-archive")
@@ -229,7 +250,7 @@ async fn post_text(State(st): State<St>, ConnectInfo(addr): ConnectInfo<SocketAd
     }
     let text = body.get("text").and_then(Value::as_str).unwrap_or("").trim();
     if text.is_empty() {
-        return err(StatusCode::BAD_REQUEST, "内容为空");
+        return err(StatusCode::BAD_REQUEST, l("内容为空", "Message is empty"));
     }
     let msg = st.add_text(text, side(&c), &c.device);
     Json(st.message_json(&msg)).into_response()
@@ -241,11 +262,11 @@ async fn delete(State(st): State<St>, ConnectInfo(addr): ConnectInfo<SocketAddr>
     }
     let name = body.get("name").and_then(Value::as_str).unwrap_or("");
     let Some(path) = resolve_shared(&st.dir(), name) else {
-        return err(StatusCode::NOT_FOUND, "文件不存在");
+        return err(StatusCode::NOT_FOUND, l("文件不存在", "File not found"));
     };
     // 手机端删除也放进回收站，误删可以找回
     if trash::delete(&path).is_err() && std::fs::remove_file(&path).is_err() {
-        return err(StatusCode::INTERNAL_SERVER_ERROR, "删除失败");
+        return err(StatusCode::INTERNAL_SERVER_ERROR, l("删除失败", "Delete failed"));
     }
     st.emit("files-changed", ());
     Json(json!({"ok": true})).into_response()
@@ -253,7 +274,7 @@ async fn delete(State(st): State<St>, ConnectInfo(addr): ConnectInfo<SocketAddr>
 
 async fn open_folder(State(st): State<St>, ConnectInfo(addr): ConnectInfo<SocketAddr>) -> Response {
     if !addr.ip().is_loopback() {
-        return err(StatusCode::FORBIDDEN, "仅限电脑端");
+        return err(StatusCode::FORBIDDEN, l("仅限电脑端", "PC only"));
     }
     let _ = open::that_detached(st.dir());
     Json(json!({"ok": true})).into_response()
@@ -262,15 +283,15 @@ async fn open_folder(State(st): State<St>, ConnectInfo(addr): ConnectInfo<Socket
 async fn pair(State(st): State<St>, ConnectInfo(addr): ConnectInfo<SocketAddr>, Json(body): Json<Value>) -> Response {
     let ip: IpAddr = addr.ip();
     let device: String = body.get("device").and_then(Value::as_str).unwrap_or("").trim().chars().take(40).collect();
-    let device = if device.is_empty() { "未知设备".to_string() } else { device };
+    let device = if device.is_empty() { l("未知设备", "Unknown device").to_string() } else { device };
 
     if st.pair_rejected.lock().unwrap().get(&ip).is_some_and(|t| t.elapsed() < Duration::from_secs(10)) {
-        return err(StatusCode::FORBIDDEN, "电脑拒绝了配对，请稍后再试");
+        return err(StatusCode::FORBIDDEN, l("电脑拒绝了配对，请稍后再试", "The PC declined pairing. Try again later"));
     }
     let rx = {
         let mut pending = st.pending_pair.lock().unwrap();
         if pending.is_some() {
-            return err(StatusCode::TOO_MANY_REQUESTS, "电脑上已有待确认的配对请求");
+            return err(StatusCode::TOO_MANY_REQUESTS, l("电脑上已有待确认的配对请求", "Another pairing request is waiting on the PC"));
         }
         let (tx, rx) = tokio::sync::oneshot::channel();
         *pending = Some(tx);
@@ -284,7 +305,7 @@ async fn pair(State(st): State<St>, ConnectInfo(addr): ConnectInfo<SocketAddr>, 
     st.emit("pair-closed", ());
     if !allowed {
         st.pair_rejected.lock().unwrap().insert(ip, Instant::now());
-        return err(StatusCode::FORBIDDEN, "电脑拒绝了配对");
+        return err(StatusCode::FORBIDDEN, l("电脑拒绝了配对", "The PC declined pairing"));
     }
     st.devices.lock().unwrap().insert(device.clone(), Device { ip, last_seen: Instant::now() });
     st.emit("paired", json!({"device": device}));
@@ -307,7 +328,7 @@ async fn upload(State(st): State<St>, ConnectInfo(addr): ConnectInfo<SocketAddr>
 
     let mut file = match tokio::fs::File::create(&tmp).await {
         Ok(f) => f,
-        Err(e) => return err(StatusCode::INTERNAL_SERVER_ERROR, &format!("无法写入接收文件夹：{e}")),
+        Err(e) => return err(StatusCode::INTERNAL_SERVER_ERROR, &format!("{}{e}", l("无法写入接收文件夹：", "Can't write to the receiving folder: "))),
     };
     progress("start", 0, &name);
     let mut stream = body.into_data_stream();
@@ -338,13 +359,13 @@ async fn upload(State(st): State<St>, ConnectInfo(addr): ConnectInfo<SocketAddr>
     if failed || total.is_some_and(|t| t != done) {
         let _ = tokio::fs::remove_file(&tmp).await;
         progress("failed", done, &name);
-        return err(StatusCode::BAD_REQUEST, "传输中断");
+        return err(StatusCode::BAD_REQUEST, l("传输中断", "Transfer interrupted"));
     }
     let dest = unique_path(&dir, &name); // 上传期间可能出现同名文件，最后再定名字
     if let Err(e) = tokio::fs::rename(&tmp, &dest).await {
         let _ = tokio::fs::remove_file(&tmp).await;
         progress("failed", done, &name);
-        return err(StatusCode::INTERNAL_SERVER_ERROR, &format!("保存失败：{e}"));
+        return err(StatusCode::INTERNAL_SERVER_ERROR, &format!("{}{e}", l("保存失败：", "Save failed: ")));
     }
     let final_name = dest.file_name().unwrap().to_string_lossy().into_owned();
     let msg = st.add_file(&final_name, done, side(&c), &c.device);
@@ -364,10 +385,10 @@ async fn download(
         return forbidden();
     }
     let Some(path) = resolve_shared(&st.dir(), &name) else {
-        return err(StatusCode::NOT_FOUND, "文件不存在");
+        return err(StatusCode::NOT_FOUND, l("文件不存在", "File not found"));
     };
     let Ok(mut file) = tokio::fs::File::open(&path).await else {
-        return err(StatusCode::NOT_FOUND, "文件无法读取");
+        return err(StatusCode::NOT_FOUND, l("文件无法读取", "Can't read the file"));
     };
     let size = file.metadata().await.map(|m| m.len()).unwrap_or(0);
 
@@ -398,7 +419,7 @@ async fn download(
     }
     let len = if size == 0 { 0 } else { end - start + 1 };
     if start > 0 && file.seek(SeekFrom::Start(start)).await.is_err() {
-        return err(StatusCode::INTERNAL_SERVER_ERROR, "读取失败");
+        return err(StatusCode::INTERNAL_SERVER_ERROR, l("读取失败", "Read failed"));
     }
     let file_name = path.file_name().unwrap().to_string_lossy().into_owned();
     let mime = mime_guess::from_path(&path).first_or_octet_stream();
@@ -435,7 +456,10 @@ async fn remote_stream(State(st): State<St>, ConnectInfo(addr): ConnectInfo<Sock
         return forbidden();
     }
     if !st.remote_enabled() {
-        return err(StatusCode::FORBIDDEN, "电脑上还没有开启远程控制：请在电脑客户端「设置 → 远程控制」里打开");
+        return err(StatusCode::FORBIDDEN, l(
+            "电脑上还没有开启远程控制：请在电脑客户端「设置 → 远程控制」里打开",
+            "Remote control is off on the PC. Turn it on under Settings → Remote control in the PC app",
+        ));
     }
     let index: usize = q.get("monitor").and_then(|m| m.parse().ok()).unwrap_or(usize::MAX);
     let quality = q.get("q").cloned().unwrap_or_default();
@@ -463,7 +487,7 @@ async fn remote_input(State(st): State<St>, ConnectInfo(addr): ConnectInfo<Socke
         return forbidden();
     }
     if !st.remote_enabled() {
-        return err(StatusCode::FORBIDDEN, "电脑上已关闭远程控制");
+        return err(StatusCode::FORBIDDEN, l("电脑上已关闭远程控制", "Remote control was turned off on the PC"));
     }
     let raw = String::from_utf8_lossy(&body).into_owned();
     let result = tauri::async_runtime::spawn_blocking(move || {

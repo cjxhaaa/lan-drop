@@ -6,9 +6,38 @@ use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::net::IpAddr;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, OnceLock};
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Emitter, Manager};
+
+/// 界面是否用英文（由设置里的语言决定，"auto" 跟随 Windows 显示语言）
+static EN: AtomicBool = AtomicBool::new(false);
+
+pub fn is_en() -> bool {
+    EN.load(Ordering::Relaxed)
+}
+
+/// 按当前语言二选一
+pub fn tr(zh: &'static str, en: &'static str) -> &'static str {
+    if is_en() { en } else { zh }
+}
+
+/// Windows 显示语言不是中文时用英文
+pub fn system_is_en() -> bool {
+    const LANG_CHINESE: u16 = 0x04;
+    let id = unsafe { windows::Win32::Globalization::GetUserDefaultUILanguage() };
+    id & 0x3ff != LANG_CHINESE
+}
+
+fn apply_lang(lang: &str) {
+    let en = match lang {
+        "en" => true,
+        "zh" => false,
+        _ => system_is_en(),
+    };
+    EN.store(en, Ordering::Relaxed);
+}
 
 pub const HTTP_PORT: u16 = 8765;
 pub const DISCOVERY_PORT: u16 = 8766;
@@ -23,10 +52,17 @@ pub struct Config {
     /// 手机发来消息时弹系统通知（默认开）
     #[serde(default = "yes")]
     pub notify: bool,
+    /// 界面语言："auto" | "zh" | "en"
+    #[serde(default = "auto")]
+    pub lang: String,
 }
 
 fn yes() -> bool {
     true
+}
+
+fn auto() -> String {
+    "auto".into()
 }
 
 /// 聊天记录里的一条消息：文字或文件（图片也是文件）。
@@ -82,7 +118,10 @@ impl AppState {
             .ok()
             .and_then(|s| serde_json::from_str(&s).ok());
         let fresh = cfg.is_none();
-        let cfg = cfg.get_or_insert_with(|| Config { key: random_key(), dir: default_dir(), remote: false, notify: true }).clone();
+        apply_lang(cfg.as_ref().map_or("auto", |c| c.lang.as_str()));
+        let cfg = cfg
+            .get_or_insert_with(|| Config { key: random_key(), dir: default_dir(), remote: false, notify: true, lang: auto() })
+            .clone();
         let _ = std::fs::create_dir_all(&cfg.dir);
         let state = AppState {
             app: OnceLock::new(),
@@ -119,6 +158,17 @@ impl AppState {
 
     pub fn set_notify(&self, enable: bool) {
         self.cfg.lock().unwrap().notify = enable;
+        self.save();
+    }
+
+    pub fn lang(&self) -> String {
+        self.cfg.lock().unwrap().lang.clone()
+    }
+
+    pub fn set_lang(&self, lang: &str) {
+        let lang = if matches!(lang, "zh" | "en") { lang } else { "auto" };
+        self.cfg.lock().unwrap().lang = lang.into();
+        apply_lang(lang);
         self.save();
     }
 
@@ -223,12 +273,12 @@ impl AppState {
         }
         let body = match (m.kind.as_str(), &m.name) {
             ("text", _) => m.text.clone().unwrap_or_default(),
-            (_, Some(name)) if is_image(name) => format!("[图片] {name}"),
-            (_, Some(name)) => format!("[文件] {name}"),
+            (_, Some(name)) if is_image(name) => format!("{} {name}", tr("[图片]", "[Image]")),
+            (_, Some(name)) => format!("{} {name}", tr("[文件]", "[File]")),
             _ => return,
         };
         let app = app.clone();
-        crate::notify::show(&format!("来自 {}", m.from), &body, move || {
+        crate::notify::show(&format!("{}{}", tr("来自 ", "From "), m.from), &body, move || {
             show_main(&app);
             let _ = app.emit("open-chat", ());
         });
@@ -314,7 +364,7 @@ fn save_history(list: &[Message]) {
 
 fn default_dir() -> PathBuf {
     let home = std::env::var_os("USERPROFILE").map(PathBuf::from).unwrap_or_else(|| PathBuf::from("."));
-    home.join("手机互传")
+    home.join(tr("手机互传", "LanDrop"))
 }
 
 pub fn random_hex(bytes: usize) -> String {

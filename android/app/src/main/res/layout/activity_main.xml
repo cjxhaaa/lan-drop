@@ -52,7 +52,7 @@
                     android:ellipsize="end"
                     android:maxWidth="180dp"
                     android:singleLine="true"
-                    android:text="未连接电脑"
+                    android:text="@string/no_pc"
                     android:textColor="@color/text"
                     android:textSize="17sp"
                     android:textStyle="bold" />
@@ -76,7 +76,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:singleLine="true"
-                        android:text="点这里查找电脑"
+                        android:text="@string/tap_to_find"
                         android:textColor="@color/muted"
                         android:textSize="12sp" />
                 </LinearLayout>
@@ -112,7 +112,7 @@
                 android:layout_height="match_parent"
                 android:background="@drawable/seg_on"
                 android:gravity="center"
-                android:text="聊天"
+                android:text="@string/tab_chat"
                 android:textColor="@color/text"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -122,7 +122,7 @@
                 android:layout_width="56dp"
                 android:layout_height="match_parent"
                 android:gravity="center"
-                android:text="文件"
+                android:text="@string/tab_files"
                 android:textColor="@color/muted"
                 android:textSize="14sp" />
         </LinearLayout>
@@ -219,7 +219,7 @@
             android:layout_marginHorizontal="8dp"
             android:layout_weight="1"
             android:background="@drawable/input_bg"
-            android:hint="发消息到电脑"
+            android:hint="@string/input_hint"
             android:inputType="textMultiLine|textCapSentences"
             android:maxLines="5"
             android:minHeight="42dp"
@@ -236,7 +236,7 @@
             android:background="@drawable/pill_primary"
             android:gravity="center"
             android:paddingHorizontal="18dp"
-            android:text="发送"
+            android:text="@string/send"
             android:textColor="#FFFFFF"
             android:textSize="15sp"
             android:textStyle="bold"

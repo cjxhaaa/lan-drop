@@ -65,7 +65,7 @@ public class MirrorService extends Service {
     public void onCreate() {
         super.onCreate();
         store = new Store(this);
-        NotificationChannel ch = new NotificationChannel(CHANNEL, "投屏到电脑", NotificationManager.IMPORTANCE_LOW);
+        NotificationChannel ch = new NotificationChannel(CHANNEL, L.t("投屏到电脑"), NotificationManager.IMPORTANCE_LOW);
         getSystemService(NotificationManager.class).createNotificationChannel(ch);
     }
 
@@ -78,10 +78,10 @@ public class MirrorService extends Service {
         Intent stop = new Intent(this, MirrorService.class).setAction(ACTION_STOP);
         Notification n = new Notification.Builder(this, CHANNEL)
                 .setSmallIcon(R.drawable.ic_launcher_fg)
-                .setContentTitle("正在投屏到电脑「" + store.name() + "」")
-                .setContentText(ControlService.enabled() ? "电脑可以查看和操作这台手机" : "电脑可以查看这台手机的屏幕")
+                .setContentTitle(L.f("正在投屏到电脑「%s」", store.name()))
+                .setContentText(ControlService.enabled() ? L.t("电脑可以查看和操作这台手机") : L.t("电脑可以查看这台手机的屏幕"))
                 .setOngoing(true)
-                .addAction(new Notification.Action.Builder(null, "停止投屏",
+                .addAction(new Notification.Action.Builder(null, L.t("停止投屏"),
                         PendingIntent.getService(this, 1, stop, PendingIntent.FLAG_IMMUTABLE)).build())
                 .build();
         // 安卓 14 起必须先以「录屏」类型进入前台，才能拿到录屏权限

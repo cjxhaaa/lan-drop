@@ -1,7 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">文件互传</string>
-    <string name="share_label">发送到电脑</string>
-    <string name="a11y_label">文件互传 · 电脑操作手机</string>
-    <string name="a11y_desc">开启后，投屏到电脑时可以在电脑上用鼠标点击、滑动手机，并用电脑键盘往手机里打字。只在投屏期间执行电脑发来的操作，不读取也不上传你的屏幕内容以外的任何信息。</string>
+    <string name="app_name">LanDrop</string>
+    <string name="share_label">Send to PC</string>
+    <string name="remote_label">Control PC</string>
+    <string name="a11y_label">LanDrop · PC controls phone</string>
+    <string name="a11y_desc">When on, the PC can tap and swipe on this phone with its mouse and type with its keyboard while you\'re casting. It only carries out actions from the PC during casting, and reads or uploads nothing beyond your screen image.</string>
+    <string name="no_pc">No PC connected</string>
+    <string name="tap_to_find">Tap here to find your PC</string>
+    <string name="tab_chat">Chat</string>
+    <string name="tab_files">Files</string>
+    <string name="input_hint">Message your PC</string>
+    <string name="send">Send</string>
+    <string name="connecting_pc">Connecting to PC…</string>
+    <string name="cancel">Cancel</string>
 </resources>

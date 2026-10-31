@@ -68,8 +68,7 @@ public class RemoteActivity extends Activity {
     private boolean touchpad; // true = 触控板模式（默认），false = 跟手模式（按到哪鼠标到哪）
     private static final String[] QUALITY_KEYS = {"smooth", "hd", "full"};
     private static final String[] QUALITY_NAMES = {"流畅", "高清", "原画"};
-    private static final String[] QUALITY_DESC = {"流畅 · 帧率最高", "高清 · 推荐", "原画 · 最清晰，帧率较低"};
-
+    
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -105,32 +104,32 @@ public class RemoteActivity extends Activity {
         tools.setOrientation(LinearLayout.VERTICAL);
         tools.setGravity(Gravity.END);
         tools.setVisibility(View.GONE);
-        btnMode = barButton(touchpad ? "触控板" : "跟手", v -> toggleMode());
+        btnMode = barButton(touchpad ? L.t("触控板") : L.t("跟手"), v -> toggleMode());
         tools.addView(btnMode);
         btnQuality = barButton(qualityName(), v -> chooseQuality(v));
         tools.addView(btnQuality);
-        tools.addView(barButton("适应屏幕", v -> {
+        tools.addView(barButton(L.t("适应屏幕"), v -> {
             screen.resetZoom();
-            flash("适应屏幕", 1000);
+            flash(L.t("适应屏幕"), 1000);
         }));
-        tools.addView(barButton("键盘", v -> toggleKeyboard()));
+        tools.addView(barButton(L.t("键盘"), v -> toggleKeyboard()));
         tools.addView(barButton("Esc", v -> key("esc")));
         tools.addView(barButton("Win", v -> key("win")));
-        tools.addView(barButton("退格", v -> key("backspace")));
-        tools.addView(barButton("回车", v -> key("enter")));
-        btnScreen = barButton("屏幕", v -> switchMonitor());
+        tools.addView(barButton(L.t("退格"), v -> key("backspace")));
+        tools.addView(barButton(L.t("回车"), v -> key("enter")));
+        btnScreen = barButton(L.t("屏幕"), v -> switchMonitor());
         btnScreen.setVisibility(View.GONE);
         tools.addView(btnScreen);
-        tools.addView(barButton("退出", v -> finish()));
+        tools.addView(barButton(L.t("退出"), v -> finish()));
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setGravity(Gravity.END);
         panel.addView(tools);
-        TextView toggle = barButton("工具", null);
+        TextView toggle = barButton(L.t("工具"), null);
         toggle.setOnClickListener(v -> {
             boolean show = tools.getVisibility() != View.VISIBLE;
             tools.setVisibility(show ? View.VISIBLE : View.GONE);
-            toggle.setText(show ? "收起" : "工具");
+            toggle.setText(show ? L.t("收起") : L.t("工具"));
         });
         panel.addView(toggle);
         FrameLayout.LayoutParams plp = new FrameLayout.LayoutParams(-2, -2, Gravity.END | Gravity.CENTER_VERTICAL);
@@ -225,7 +224,7 @@ public class RemoteActivity extends Activity {
     private void toggleMode() {
         touchpad = !touchpad;
         getSharedPreferences("remote", MODE_PRIVATE).edit().putBoolean("touchpad", touchpad).apply();
-        btnMode.setText(touchpad ? "触控板" : "跟手");
+        btnMode.setText(touchpad ? L.t("触控板") : L.t("跟手"));
         showHint();
     }
 
@@ -242,8 +241,8 @@ public class RemoteActivity extends Activity {
 
     private void showHint() {
         hint.setText(touchpad
-                ? "触控板模式：单指滑动移动鼠标 · 轻点 = 左键 · 双指轻点 = 右键 · 点两下按住滑动 = 拖动 · 双指上下滑 = 滚动 · 双指捏合 = 缩放画面，放大后双指拖动画面"
-                : "跟手模式：按到哪鼠标就到哪 · 轻点 = 左键 · 长按后滑动 = 拖动 · 长按松开 / 双指轻点 = 右键 · 双指捏合 = 缩放画面，放大后双指拖动画面");
+                ? L.t("触控板模式：单指滑动移动鼠标 · 轻点 = 左键 · 双指轻点 = 右键 · 点两下按住滑动 = 拖动 · 双指上下滑 = 滚动 · 双指捏合 = 缩放画面，放大后双指拖动画面")
+                : L.t("跟手模式：按到哪鼠标就到哪 · 轻点 = 左键 · 长按后滑动 = 拖动 · 长按松开 / 双指轻点 = 右键 · 双指捏合 = 缩放画面，放大后双指拖动画面"));
         hint.animate().cancel();
         hint.setAlpha(1f);
         ui.removeCallbacks(hideHint);
@@ -251,20 +250,20 @@ public class RemoteActivity extends Activity {
     }
 
     private String qualityName() {
-        for (int i = 0; i < QUALITY_KEYS.length; i++) if (QUALITY_KEYS[i].equals(quality)) return QUALITY_NAMES[i];
-        return QUALITY_NAMES[1];
+        for (int i = 0; i < QUALITY_KEYS.length; i++) if (QUALITY_KEYS[i].equals(quality)) return L.t(QUALITY_NAMES[i]);
+        return L.t(QUALITY_NAMES[1]);
     }
 
     private void chooseQuality(View anchor) {
         Sheet sheet = new Sheet(this)
                 .icon(R.drawable.ic_hd, R.color.accent, R.drawable.circle_soft)
-                .title("画面清晰度")
-                .message("越清晰，每秒画面越少；局域网信号差时选「流畅」");
-        String[] subs = {"1280 宽 · 帧率最高", "1920 宽 · 推荐", "原始分辨率 · 最清楚，帧率较低"};
+                .title(L.t("画面清晰度"))
+                .message(L.t("越清晰，每秒画面越少；局域网信号差时选「流畅」"));
+        String[] subs = {L.t("1280 宽 · 帧率最高"), L.t("1920 宽 · 推荐"), L.t("原始分辨率 · 最清楚，帧率较低")};
         for (int i = 0; i < QUALITY_KEYS.length; i++) {
             String key = QUALITY_KEYS[i];
             boolean current = key.equals(quality);
-            sheet.option(current ? R.drawable.ic_check : R.drawable.ic_hd, QUALITY_NAMES[i] + (current ? "（当前）" : ""), subs[i], false, () -> {
+            sheet.option(current ? R.drawable.ic_check : R.drawable.ic_hd, L.t(QUALITY_NAMES[i]) + (current ? L.t("（当前）") : ""), subs[i], false, () -> {
                 quality = key;
                 getSharedPreferences("remote", MODE_PRIVATE).edit().putString("quality", quality).apply();
                 btnQuality.setText(qualityName());
@@ -286,7 +285,7 @@ public class RemoteActivity extends Activity {
     private void startStream() {
         if (running) return;
         running = true;
-        showStatus("正在连接电脑画面…");
+        showStatus(L.t("正在连接电脑画面…"));
         int id = ++streamId;
         streamThread = new Thread(() -> streamLoop(id), "remote-stream");
         streamThread.start();
@@ -338,8 +337,8 @@ public class RemoteActivity extends Activity {
             }
         } catch (IOException e) {
             if (running && id == streamId) {
-                String msg = e.getMessage() == null ? "连接中断" : e.getMessage();
-                ui.post(() -> showStatus("画面已断开\n" + msg + "\n\n点屏幕重新连接"));
+                String msg = e.getMessage() == null ? L.t("连接中断") : e.getMessage();
+                ui.post(() -> showStatus(L.f("画面已断开\n%s\n\n点屏幕重新连接", msg)));
             }
         } finally {
             if (id == streamId) running = false;
@@ -398,7 +397,7 @@ public class RemoteActivity extends Activity {
             // 点到的是管理员权限的程序：Windows 会忽略这些操作，提示去电脑上授权
             if (res.contains("\"blocked\":true") && System.currentTimeMillis() - blockedHintAt > 8000) {
                 blockedHintAt = System.currentTimeMillis();
-                ui.post(() -> flash("这个窗口是管理员权限的程序，需要在电脑上「设置 → 远程控制」点「授权」后才能操作", 5000));
+                ui.post(() -> flash(L.t("这个窗口是管理员权限的程序，需要在电脑上「设置 → 远程控制」点「授权」后才能操作"), 5000));
             }
         } catch (IOException ignored) {
         }
@@ -760,7 +759,7 @@ public class RemoteActivity extends Activity {
                 zoom = Math.max(1f, Math.min(5f, startZoom * ratio));
                 panX = mx - ix * fit * zoom - (getWidth() - fw * fit * zoom) / 2;
                 panY = my - iy * fit * zoom - (getHeight() - fh * fit * zoom) / 2;
-                if (Math.abs(ratio - 1) > 0.02f) flash(zoom < 1.05f ? "适应屏幕" : "放大 " + Math.round(zoom * 100) + "%", 1200);
+                if (Math.abs(ratio - 1) > 0.02f) flash(zoom < 1.05f ? L.t("适应屏幕") : L.f("放大 %d%%", Math.round(zoom * 100)), 1200);
                 invalidate();
             } else {
                 // 未放大时双指上下滑动 = 滚轮（手指下移 = 往上滚，和手机里滑动页面的方向一致）

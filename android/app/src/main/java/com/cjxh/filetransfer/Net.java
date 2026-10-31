@@ -144,7 +144,7 @@ final class Net {
             JSONObject res = new JSONObject(send(c, body.toString()));
             return res.getString("key");
         } catch (JSONException e) {
-            throw new IOException("电脑返回了无法识别的数据");
+            throw new IOException(L.t("电脑返回了无法识别的数据"));
         }
     }
 
@@ -169,7 +169,7 @@ final class Net {
         try {
             return new JSONArray(readBody(c));
         } catch (JSONException e) {
-            throw new IOException("数据格式错误");
+            throw new IOException(L.t("数据格式错误"));
         }
     }
 
@@ -226,6 +226,7 @@ final class Net {
         c.setConnectTimeout(3000);
         c.setReadTimeout(10_000);
         c.setRequestProperty("X-Device", Uri.encode(deviceName()));
+        c.setRequestProperty("X-Lang", L.header()); // 电脑按这个语言回复错误信息
         if (!key.isEmpty()) c.setRequestProperty("X-Key", key);
         return c;
     }
@@ -261,7 +262,7 @@ final class Net {
                 msg = new JSONObject(body).optString("error", msg);
             } catch (JSONException ignored) {
             }
-            if (code == 403 && msg.startsWith("HTTP")) msg = "配对已失效，请重新连接电脑";
+            if (code == 403 && msg.startsWith("HTTP")) msg = L.t("配对已失效，请重新连接电脑");
             throw new IOException(msg);
         }
         return body;

@@ -21,7 +21,7 @@ Everything stays on your local Wi-Fi. No server, no account, and the PC side is 
 
 </div>
 
-> The app interface is currently in Chinese. Menu names below are given in English with the Chinese label in quotes, so you can find them. An English interface is planned.
+> The interface comes in English and Chinese and follows your system language. Switch it on the PC under **Settings → Language**, or on Android 13+ under the system's per-app language setting.
 
 ## Features
 
@@ -31,14 +31,14 @@ Both sides are chat windows. Text, photos and files you send line up in time ord
 
 ### Send from anywhere on your phone
 
-In any app (gallery, file manager, WeChat…), tap **Share → Send to PC** (「发送到电脑」). You don't even need to open LanDrop.
+In any app (gallery, file manager, WeChat…), tap **Share → Send to PC**. You don't even need to open LanDrop.
 
 ### On the PC it works like a folder
 
 - Drag files into the window to send them to your phone; drag photos and files out of the chat onto the desktop or any folder
 - Paste screenshots with Ctrl+V to send them
 - The Files page is the receiving folder: thumbnails, multi-select, drag out, move to Recycle Bin
-- Optional Explorer integration: right-click **Send to → 手机互传**, or pin the folder to Quick Access
+- Optional Explorer integration: right-click **Send to → LanDrop**, or pin the folder to Quick Access
 
 ### Control your PC from your phone
 
@@ -86,17 +86,17 @@ Get them from [Releases](https://github.com/cjxhaaa/lan-drop/releases/latest):
 ## Quick start
 
 1. **PC**: run the exe. On first launch Windows Firewall asks for access — tick **Private networks** and allow.
-2. **Install the phone app**: on the PC open **Settings → Install app on phone** (「设置 → 给手机安装 App」) and scan the QR code with your phone's browser or camera.
-3. **Connect**: open the phone app. It finds the PC automatically — tap **Connect** (「连接」), then click **Allow** (「允许连接」) on the PC.
+2. **Install the phone app**: on the PC open **Settings → Install app on phone** and scan the QR code with your phone's browser or camera.
+3. **Connect**: open the phone app. It finds the PC automatically — tap **Connect**, then click **Allow** on the PC.
 4. Done. From now on just open it. Closing the PC window keeps it running in the system tray.
 
-> Phones without the app can still use it: scan the QR code under **Settings → Connection** (「连接方式」) to send and receive files in the phone's browser.
+> Phones without the app can still use it: scan the QR code under **Settings → Connection** to send and receive files in the phone's browser.
 
 ## Control your PC from your phone
 
-Enable **Settings → Remote control → Allow this phone to control the PC** (「允许手机控制这台电脑」), then tap the hand icon at the top of the phone app.
+Enable **Settings → Remote control → Allow this phone to control the PC**, then tap the hand icon at the top of the phone app.
 
-| Gesture | Touchpad mode (default) | Direct mode (「跟手」) |
+| Gesture | Touchpad mode (default) | Direct mode |
 |---|---|---|
 | Finger down | Cursor stays | Cursor jumps under your finger |
 | One-finger slide | Move the cursor, with acceleration | Cursor follows your finger |
@@ -108,13 +108,13 @@ Enable **Settings → Remote control → Allow this phone to control the PC** (�
 | Pinch | Zoom around your fingers (up to 5×) | Same |
 | Two-finger drag when zoomed | Pan; the view also follows the cursor | Pan |
 
-The **Tools** (「工具」) button on the right switches mode and quality (Smooth / HD / Original), fits the screen, opens the keyboard (type with your phone's input method, Chinese works too), and sends Esc, Win, Backspace and Enter.
+The **Tools** button on the right switches mode and quality (Smooth / HD / Original), fits the screen, opens the keyboard (type with your phone's input method, Chinese works too), and sends Esc, Win, Backspace and Enter.
 
 ## View and control your phone from your PC
 
-In the phone app tap the PC at the top left → **Cast to PC** (「投屏到电脑」). After you confirm screen recording, the **Phone** (「手机」) page on the PC shows the phone screen.
+In the phone app tap the PC at the top left → **Cast to PC**. After you confirm screen recording, the **Phone** page on the PC shows the phone screen.
 
-To control the phone from the PC, turn on **文件互传 · 电脑操作手机** under the phone's **Settings → Accessibility** (the app takes you there the first time). Without it you can still watch, just not control.
+To control the phone from the PC, turn on **LanDrop · PC controls phone** under the phone's **Settings → Accessibility** (the app takes you there the first time). Without it you can still watch, just not control.
 
 | On the PC | On the phone |
 |---|---|
@@ -135,19 +135,19 @@ Back, Home and Recents buttons sit below the screen. The phone shows an ongoing 
 - Make sure LanDrop is running on the PC (look for the tray icon)
 - Both devices must be on the same router. "Guest network" or "AP isolation" on some routers blocks devices from seeing each other
 - If you dismissed the firewall prompt: Windows Settings → Firewall → Allow an app through firewall, tick **Private** for LanDrop
-- Still nothing? Tap **Enter IP** (「输入 IP」) in the app; the address is under **Settings → This PC's address** (「本机地址」) on the PC
+- Still nothing? Tap **Enter IP** in the app; the address is under **Settings → This PC's address** on the PC
 </details>
 
 <details>
 <summary><b>Clicks don't work on games or Task Manager during remote control</b></summary>
 
-Those programs run as administrator, and Windows doesn't let normal-privilege apps control them. On the PC open **Settings → Remote control** and click **Authorize** (「授权」); confirm once and it works for the rest of the session. A few games' anti-cheat blocks simulated input — those can't be controlled.
+Those programs run as administrator, and Windows doesn't let normal-privilege apps control them. On the PC open **Settings → Remote control** and click **Authorize**; confirm once and it works for the rest of the session. A few games' anti-cheat blocks simulated input — those can't be controlled.
 </details>
 
 <details>
 <summary><b>Accessibility switch is greyed out / "Restricted setting"</b></summary>
 
-Since Android 13, apps installed outside an app store can't enable accessibility by default. Go to Settings → Apps → 文件互传 → top-right menu → **Allow restricted settings**, then turn it on under Accessibility.
+Since Android 13, apps installed outside an app store can't enable accessibility by default. Go to Settings → Apps → LanDrop → top-right menu → **Allow restricted settings**, then turn it on under Accessibility.
 </details>
 
 <details>

@@ -54,12 +54,12 @@ public class NotifyService extends Service {
     public void onCreate() {
         super.onCreate();
         NotificationManager nm = getSystemService(NotificationManager.class);
-        NotificationChannel service = new NotificationChannel(CH_SERVICE, "后台接收", NotificationManager.IMPORTANCE_MIN);
-        service.setDescription("保持和电脑的连接，用来及时收到消息。可以在系统设置里隐藏这条通知");
+        NotificationChannel service = new NotificationChannel(CH_SERVICE, L.t("后台接收"), NotificationManager.IMPORTANCE_MIN);
+        service.setDescription(L.t("保持和电脑的连接，用来及时收到消息。可以在系统设置里隐藏这条通知"));
         service.setShowBadge(false);
         nm.createNotificationChannel(service);
-        NotificationChannel messages = new NotificationChannel(CH_MESSAGES, "电脑发来的消息", NotificationManager.IMPORTANCE_HIGH);
-        messages.setDescription("电脑发来文字、图片或文件时提醒");
+        NotificationChannel messages = new NotificationChannel(CH_MESSAGES, L.t("电脑发来的消息"), NotificationManager.IMPORTANCE_HIGH);
+        messages.setDescription(L.t("电脑发来文字、图片或文件时提醒"));
         nm.createNotificationChannel(messages);
     }
 
@@ -67,8 +67,8 @@ public class NotifyService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         Notification n = new Notification.Builder(this, CH_SERVICE)
                 .setSmallIcon(R.drawable.ic_launcher_fg)
-                .setContentTitle("文件互传正在后台接收")
-                .setContentText("电脑发来消息时会提醒你")
+                .setContentTitle(L.t("文件互传正在后台接收"))
+                .setContentText(L.t("电脑发来消息时会提醒你"))
                 .setContentIntent(openApp())
                 .setOngoing(true)
                 .build();
@@ -147,13 +147,13 @@ public class NotifyService extends Service {
             body = m.optString("text");
         } else if ("file".equals(kind)) {
             String name = m.optString("name");
-            body = (name.matches("(?i).*\\.(jpe?g|png|gif|webp|bmp|heic|avif)$") ? "[图片] " : "[文件] ") + name;
+            body = (name.matches("(?i).*\\.(jpe?g|png|gif|webp|bmp|heic|avif)$") ? L.t("[图片] ") : L.t("[文件] ")) + name;
         } else {
             return;
         }
         Notification n = new Notification.Builder(this, CH_MESSAGES)
                 .setSmallIcon(R.drawable.ic_launcher_fg)
-                .setContentTitle("来自电脑「" + store.name() + "」")
+                .setContentTitle(L.f("来自电脑「%s」", store.name()))
                 .setContentText(body)
                 .setStyle(new Notification.BigTextStyle().bigText(body))
                 .setContentIntent(openApp())

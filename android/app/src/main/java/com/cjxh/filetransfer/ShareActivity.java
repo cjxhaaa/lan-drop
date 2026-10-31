@@ -65,7 +65,7 @@ public class ShareActivity extends Activity {
 
         readIntent(getIntent());
         if (uris.isEmpty() && (text == null || text.isEmpty())) {
-            fail("没有可发送的内容", "", false);
+            fail(L.t("没有可发送的内容"), "", false);
             return;
         }
         io.execute(this::run);
@@ -93,16 +93,16 @@ public class ShareActivity extends Activity {
             ui.post(this::needPair);
             return;
         }
-        ui.post(() -> working("正在连接「" + store.name() + "」…", ""));
+        ui.post(() -> working(L.f("正在连接「%s」…", store.name()), ""));
         if (!Net.ensure(store)) {
-            ui.post(() -> fail("找不到电脑「" + store.name() + "」",
-                    "请确认电脑上的「文件互传」客户端正在运行，并且手机和电脑在同一个 Wi-Fi。", true));
+            ui.post(() -> fail(L.f("找不到电脑「%s」", store.name()),
+                    L.t("请确认电脑上的「文件互传」客户端正在运行，并且手机和电脑在同一个 Wi-Fi。"), true));
             return;
         }
         try {
             if (uris.isEmpty()) {
                 Net.postJson(store, "/api/texts", new JSONObject().put("text", text));
-                ui.post(() -> success("文字已发送到「" + store.name() + "」"));
+                ui.post(() -> success(L.f("文字已发送到「%s」", store.name())));
                 return;
             }
             ContentResolver resolver = getContentResolver();
@@ -111,11 +111,11 @@ public class ShareActivity extends Activity {
                 sendOne(resolver, uris.get(nextIndex), nextIndex);
             }
             int n = uris.size();
-            ui.post(() -> success((n == 1 ? "已发送" : "已发送 " + n + " 个文件") + "到「" + store.name() + "」"));
+            ui.post(() -> success(n == 1 ? L.f("已发送到「%s」", store.name()) : L.f("已发送 %d 个文件到「%s」", n, store.name())));
         } catch (Exception e) {
             if (cancelled) return;
             String msg = e.getMessage() == null ? e.toString() : e.getMessage();
-            ui.post(() -> fail("发送失败", msg, true));
+            ui.post(() -> fail(L.t("发送失败"), msg, true));
         }
     }
 
@@ -132,13 +132,13 @@ public class ShareActivity extends Activity {
         if (name == null || name.isEmpty()) {
             name = uri.getLastPathSegment() == null ? "file" : new File(uri.getLastPathSegment()).getName();
         }
-        String label = uris.size() > 1 ? "（" + (index + 1) + "/" + uris.size() + "）" : "";
+        String label = uris.size() > 1 ? L.f("（%d/%d）", index + 1, uris.size()) : "";
         String fName = name;
-        ui.post(() -> working("正在发送" + label, fName));
+        ui.post(() -> working(L.t("正在发送") + label, fName));
 
         File tmp = null;
         InputStream in = resolver.openInputStream(uri);
-        if (in == null) throw new IOException("无法读取文件：" + name);
+        if (in == null) throw new IOException(L.t("无法读取文件：") + name);
         try {
             if (size < 0) {
                 // 部分 App 不提供文件大小，先复制到缓存里再按固定长度上传
@@ -197,12 +197,12 @@ public class ShareActivity extends Activity {
 
     private void working(String msg, String sub) {
         setIcon(R.drawable.ic_upload, R.color.accent, R.drawable.circle_soft);
-        title.setText("发送到电脑");
+        title.setText(L.t("发送到电脑"));
         message.setText(msg);
         setDetail(sub);
         progress.setVisibility(View.VISIBLE);
         progress.setIndeterminate(true);
-        primary.setText("取消");
+        primary.setText(L.t("取消"));
         style(primary, false);
         primary.setOnClickListener(v -> cancel());
         secondary.setVisibility(View.GONE);
@@ -210,12 +210,12 @@ public class ShareActivity extends Activity {
 
     private void success(String msg) {
         setIcon(R.drawable.ic_check, R.color.ok, R.drawable.circle_ok);
-        title.setText("发送成功");
+        title.setText(L.t("发送成功"));
         message.setText(msg);
         setDetail("");
         progress.setIndeterminate(false);
         progress.setProgress(1000);
-        primary.setText("完成");
+        primary.setText(L.t("完成"));
         style(primary, true);
         primary.setOnClickListener(v -> finish());
         ui.postDelayed(this::finish, 1500);
@@ -223,19 +223,19 @@ public class ShareActivity extends Activity {
 
     private void fail(String msg, String sub, boolean retry) {
         setIcon(R.drawable.ic_close, R.color.danger, R.drawable.circle_soft);
-        title.setText("没有发送成功");
+        title.setText(L.t("没有发送成功"));
         message.setText(msg);
         setDetail(sub);
         progress.setVisibility(View.GONE);
-        primary.setText("关闭");
+        primary.setText(L.t("关闭"));
         style(primary, !retry);
         primary.setOnClickListener(v -> finish());
         if (retry) {
             secondary.setVisibility(View.VISIBLE);
-            secondary.setText("重试");
+            secondary.setText(L.t("重试"));
             style(secondary, true);
             secondary.setOnClickListener(v -> {
-                working("正在重试…", "");
+                working(L.t("正在重试…"), "");
                 io.execute(this::run);
             });
         }
@@ -243,17 +243,17 @@ public class ShareActivity extends Activity {
 
     private void needPair() {
         setIcon(R.drawable.ic_computer, R.color.accent, R.drawable.circle_soft);
-        title.setText("还没有连接电脑");
-        message.setText("请先打开「文件互传」App，查找并连接电脑，之后就能从任意 App 直接分享过来。");
+        title.setText(L.t("还没有连接电脑"));
+        message.setText(L.t("请先打开「文件互传」App，查找并连接电脑，之后就能从任意 App 直接分享过来。"));
         progress.setVisibility(View.GONE);
-        primary.setText("打开 App");
+        primary.setText(L.t("打开 App"));
         style(primary, true);
         primary.setOnClickListener(v -> {
             startActivity(new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             finish();
         });
         secondary.setVisibility(View.VISIBLE);
-        secondary.setText("取消");
+        secondary.setText(L.t("取消"));
         style(secondary, false);
         secondary.setOnClickListener(v -> finish());
     }

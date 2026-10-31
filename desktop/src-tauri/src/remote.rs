@@ -409,7 +409,11 @@ pub fn start_helper() -> Result<(), String> {
         ShellExecuteW(None, w!("runas"), &HSTRING::from(exe.as_os_str()), &HSTRING::from(args), None, SW_HIDE)
     };
     if result.0 as isize <= 32 {
-        return Err("没有获得管理员授权（可能在确认框里点了「否」）".into());
+        return Err(crate::state::tr(
+            "没有获得管理员授权（可能在确认框里点了「否」）",
+            "Administrator permission was not granted (\"No\" may have been clicked)",
+        )
+        .into());
     }
     listener.set_nonblocking(true).map_err(|e| e.to_string())?;
     let deadline = Instant::now() + Duration::from_secs(60);
@@ -431,7 +435,7 @@ pub fn start_helper() -> Result<(), String> {
             Err(e) => return Err(e.to_string()),
         }
     }
-    Err("等待授权超时".into())
+    Err(crate::state::tr("等待授权超时", "Timed out waiting for permission").into())
 }
 
 /// 处理手机发来的一批操作：助手在就交给助手（它能操作管理员窗口），否则自己执行。
