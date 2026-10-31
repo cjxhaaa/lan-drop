@@ -11,6 +11,8 @@
 ![Platform](https://img.shields.io/badge/%E5%B9%B3%E5%8F%B0-Windows%2010%2F11%20%7C%20Android%2010%2B-4a5468)
 [![License](https://img.shields.io/github/license/cjxhaaa/lan-drop?label=%E5%BC%80%E6%BA%90%E5%8D%8F%E8%AE%AE&color=16a34a)](LICENSE)
 
+[English](README.en.md) · **中文**
+
 [下载](#下载) · [功能](#功能) · [快速开始](#快速开始) · [手机控制电脑](#用手机控制电脑) · [电脑看手机](#在电脑上查看和操作手机) · [常见问题](#常见问题) · [从源码构建](#从源码构建)
 
 <br>
