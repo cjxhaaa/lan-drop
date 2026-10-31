@@ -228,6 +228,19 @@ cargo build --release
         └── Sheet           统一风格的弹窗
 ```
 
+## 相关项目
+
+这些优秀的开源项目解决了相近的问题，可以按需求选择：
+
+| 项目 | 擅长 | 和 LanDrop 的区别 |
+|---|---|---|
+| [LocalSend](https://github.com/localsend/localsend) | 全平台（含 iOS、macOS、Linux）局域网互传文件和文字 | 以单次发送为主，没有聊天记录，也没有远程控制 |
+| [KDE Connect](https://kdeconnect.kde.org/) | 手机电脑深度联动：剪贴板、通知同步、远程输入等 | 功能更全，两端都要装 KDE Connect，配置项也更多 |
+| [scrcpy](https://github.com/Genymobile/scrcpy) | 在电脑上显示和控制安卓，画质和延迟都很出色 | 需要打开开发者模式和 USB 调试，更适合技术用户 |
+| [RustDesk](https://github.com/rustdesk/rustdesk) | 通用远程桌面，局域网内也能直接用 IP 连接 | 专注远程桌面，不负责文件和聊天式互传 |
+
+LanDrop 想做的是：一个 App 加一个 exe，不用开发者模式、不用额外配置，把「互传东西」和「手机电脑互相操作」这几件日常小事做顺手。
+
 ## 开源协议
 
 [MIT](LICENSE)
