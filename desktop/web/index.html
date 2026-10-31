@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>文件互传</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --card: #fff; --text: #1d1f23; --muted: #6b7280; --line: #e5e7eb;
+    --accent: #2563eb; --accent-soft: #e8efff; --danger: #dc2626; --ok: #16a34a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111316; --card: #1b1e23; --text: #e8eaed; --muted: #9aa0a6; --line: #2c3036;
+      --accent: #5b8def; --accent-soft: #1e2a44; --danger: #f87171; --ok: #4ade80;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+  main { max-width: 860px; margin: 0 auto; padding: 16px 16px 48px; }
+  h1 { font-size: 20px; margin: 4px 0 16px; display: flex; align-items: center; gap: 8px; }
+  h2 { font-size: 15px; margin: 0 0 12px; color: var(--muted); font-weight: 600; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+  button, .btn {
+    font: inherit; border: 0; border-radius: 10px; padding: 9px 14px; cursor: pointer;
+    background: var(--accent); color: #fff; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+  }
+  button.ghost, .btn.ghost { background: var(--accent-soft); color: var(--accent); }
+  button.danger { background: transparent; color: var(--danger); padding: 9px 10px; }
+  button:disabled { opacity: .5; cursor: default; }
+
+  #connect { display: none; gap: 20px; align-items: center; flex-wrap: wrap; }
+  #qr { width: 180px; height: 180px; background: #fff; border-radius: 10px; padding: 8px; flex: none; }
+  #qr img, #qr canvas, #qr svg { width: 100%; height: 100%; display: block; }
+  #connect .info { flex: 1; min-width: 220px; }
+  #connect code { word-break: break-all; font-size: 13px; background: var(--bg); padding: 2px 6px; border-radius: 6px; }
+  #connect select { font: inherit; padding: 6px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--text); max-width: 100%; }
+  .tip { color: var(--muted); font-size: 13px; margin: 6px 0; }
+
+  #drop {
+    border: 2px dashed var(--line); border-radius: 12px; padding: 28px 12px; text-align: center; cursor: pointer;
+    transition: .15s;
+  }
+  #drop.over { border-color: var(--accent); background: var(--accent-soft); }
+  #drop strong { color: var(--accent); font-size: 16px; }
+  #queue:empty { display: none; }
+  #queue { margin-top: 12px; display: grid; gap: 8px; }
+  .job { font-size: 13px; }
+  .job .row { display: flex; justify-content: space-between; gap: 8px; }
+  .job .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin-top: 4px; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+  .job.done .bar i { background: var(--ok); }
+  .job.fail .bar i { background: var(--danger); }
+
+  textarea {
+    width: 100%; min-height: 70px; resize: vertical; font: inherit; padding: 10px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--bg); color: var(--text);
+  }
+  .text-actions { display: flex; justify-content: flex-end; margin-top: 8px; }
+  #texts { margin-top: 10px; display: grid; gap: 8px; }
+  .text-item { background: var(--bg); border-radius: 10px; padding: 10px 12px; }
+  .text-item pre { margin: 0 0 6px; white-space: pre-wrap; word-break: break-all; font: inherit; max-height: 160px; overflow: auto; }
+  .text-item .meta { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 12px; }
+  .text-item button { padding: 4px 10px; font-size: 13px; }
+
+  .file { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+  .file:first-child { border-top: 0; }
+  .icon { width: 42px; height: 42px; border-radius: 10px; background: var(--accent-soft); color: var(--accent);
+          display: grid; place-items: center; font-size: 12px; font-weight: 700; flex: none; overflow: hidden; }
+  .icon img { width: 100%; height: 100%; object-fit: cover; }
+  .file .meta { flex: 1; min-width: 0; }
+  .file .fname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file .sub { color: var(--muted); font-size: 12px; }
+  .file .ops { display: flex; gap: 4px; flex: none; }
+  .file .ops .btn, .file .ops button { padding: 7px 12px; font-size: 14px; }
+  .empty { color: var(--muted); text-align: center; padding: 18px 0; }
+  .head { display: flex; justify-content: space-between; align-items: center; }
+  #toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #222; color: #fff;
+           padding: 8px 16px; border-radius: 20px; font-size: 14px; opacity: 0; transition: .2s; pointer-events: none; }
+  #toast.show { opacity: .92; }
+  @media (max-width: 520px) {
+    .file .ops .preview { display: none; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>📲 文件互传</h1>
+
+  <section class="card" id="connect">
+    <div id="qr"></div>
+    <div class="info">
+      <h2 style="margin-bottom:6px">用手机扫码连接</h2>
+      <p class="tip">手机和电脑需连同一个 Wi-Fi。用手机浏览器或微信扫一扫打开。</p>
+      <p id="urlBox"></p>
+      <p class="tip" id="ipPick"></p>
+      <p style="margin-top:12px"><button class="ghost" id="openFolder">📂 打开共享文件夹</button></p>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>发送文件</h2>
+    <div id="drop">
+      <strong>点击选择文件</strong>
+      <div class="tip" id="dropTip">可多选，上传后另一端在下方列表下载</div>
+    </div>
+    <input type="file" id="picker" multiple hidden>
+    <div id="queue"></div>
+  </section>
+
+  <section class="card">
+    <h2>发送文字 / 链接</h2>
+    <textarea id="textInput" placeholder="粘贴文字或链接，发送到另一端…"></textarea>
+    <div class="text-actions"><button id="sendText">发送</button></div>
+    <div id="texts"></div>
+  </section>
+
+  <section class="card">
+    <div class="head"><h2>共享文件</h2><span class="tip" id="dirInfo"></span></div>
+    <div id="files"><div class="empty">加载中…</div></div>
+  </section>
+</main>
+<div id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+let isLocal = false;
+
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 1800);
+}
+function fmtSize(n) {
+  const u = ['B', 'KB', 'MB', 'GB', 'TB']; let i = 0;
+  while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
+  return (i ? n.toFixed(n < 10 ? 2 : 1) : n) + ' ' + u[i];
+}
+function fmtTime(sec) {
+  const d = new Date(sec * 1000), now = new Date();
+  const hm = d.toTimeString().slice(0, 5);
+  return d.toDateString() === now.toDateString() ? hm : `${d.getMonth() + 1}/${d.getDate()} ${hm}`;
+}
+function esc(s) {
+  return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+async function api(path, body) {
+  const opt = body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
+  const r = await fetch(path, opt);
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || r.statusText);
+  return data;
+}
+function copyText(text) {
+  // 局域网 http 页面里 navigator.clipboard 往往不可用，退回旧方案
+  if (navigator.clipboard && window.isSecureContext) {
+    return navigator.clipboard.writeText(text).then(() => toast('已复制'));
+  }
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); toast('已复制'); } catch { toast('复制失败，请长按手动复制'); }
+  ta.remove();
+}
+
+// ---------- 连接信息 / 二维码（仅电脑端显示） ----------
+function drawQR(url) {
+  const box = $('#qr');
+  $('#urlBox').innerHTML = `<code>${esc(url)}</code>`;
+  if (!window.qrcode) { box.innerHTML = '<p class="tip" style="color:#666;padding:8px">二维码库加载失败（电脑需联网），请在手机浏览器手动输入上面的地址</p>'; return; }
+  const qr = qrcode(0, 'M'); qr.addData(url); qr.make();
+  box.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
+}
+async function loadInfo() {
+  const info = await api('/api/info');
+  isLocal = info.isLocal;
+  $('#dirInfo').textContent = isLocal ? info.dir : '';
+  if (!isLocal) return;
+  $('#connect').style.display = 'flex';
+  $('#dropTip').textContent = '可多选，也可以把文件直接拖到这里';
+  $('#drop strong').textContent = '点击选择文件，或拖拽到此处';
+  await new Promise(res => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js';
+    s.onload = s.onerror = res; document.head.appendChild(s);
+  });
+  drawQR(info.urls[0]);
+  if (info.urls.length > 1) {
+    $('#ipPick').innerHTML = '扫不通？换个网卡地址：<select id="ipSel">' +
+      info.urls.map(u => `<option>${esc(u)}</option>`).join('') + '</select>';
+    $('#ipSel').onchange = e => drawQR(e.target.value);
+  }
+}
+$('#openFolder').onclick = () => api('/api/open-folder', {}).catch(e => toast(e.message));
+
+// ---------- 上传 ----------
+const queue = [];
+let uploading = false;
+
+function addFiles(list) {
+  for (const f of list) {
+    const el = document.createElement('div');
+    el.className = 'job';
+    el.innerHTML = `<div class="row"><span class="name">${esc(f.name)}</span><span class="pct">等待中</span></div><div class="bar"><i></i></div>`;
+    $('#queue').prepend(el);
+    queue.push({ file: f, el });
+  }
+  pump();
+}
+function pump() {
+  if (uploading || !queue.length) return;
+  uploading = true;
+  const { file, el } = queue.shift();
+  const pct = el.querySelector('.pct'), bar = el.querySelector('.bar i');
+  const xhr = new XMLHttpRequest();
+  const t0 = Date.now();
+  xhr.open('POST', '/api/upload?name=' + encodeURIComponent(file.name));
+  xhr.upload.onprogress = e => {
+    if (!e.lengthComputable) return;
+    const p = e.loaded / e.total * 100;
+    const speed = e.loaded / Math.max(1, (Date.now() - t0) / 1000);
+    bar.style.width = p + '%';
+    pct.textContent = `${p.toFixed(0)}% · ${fmtSize(speed)}/s`;
+  };
+  xhr.onload = () => {
+    if (xhr.status === 200) {
+      el.classList.add('done'); bar.style.width = '100%';
+      pct.textContent = `✓ ${fmtSize(file.size)}`;
+      loadFiles();
+      setTimeout(() => el.remove(), 4000);
+    } else { el.classList.add('fail'); pct.textContent = '失败'; }
+    uploading = false; pump();
+  };
+  xhr.onerror = () => { el.classList.add('fail'); pct.textContent = '失败（网络中断）'; uploading = false; pump(); };
+  xhr.send(file);
+}
+
+const drop = $('#drop'), picker = $('#picker');
+drop.onclick = () => picker.click();
+picker.onchange = () => { addFiles(picker.files); picker.value = ''; };
+['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => addFiles(e.dataTransfer.files));
+document.addEventListener('dragover', e => e.preventDefault());
+document.addEventListener('drop', e => { e.preventDefault(); if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files); });
+document.addEventListener('paste', e => {
+  if (e.target === $('#textInput')) return;
+  const files = [...(e.clipboardData?.files || [])];
+  if (files.length) addFiles(files);
+});
+
+// ---------- 文字 ----------
+let lastTexts = '';
+async function loadTexts() {
+  const list = await api('/api/texts');
+  const sig = list.map(t => t.id).join();
+  if (sig === lastTexts) return;
+  lastTexts = sig;
+  $('#texts').innerHTML = list.map(t => `
+    <div class="text-item">
+      <pre>${linkify(esc(t.text))}</pre>
+      <div class="meta"><span>来自${esc(t.from)} · ${fmtTime(t.time)}</span><button class="ghost" data-copy="${t.id}">复制</button></div>
+    </div>`).join('');
+  $('#texts').querySelectorAll('[data-copy]').forEach(b => {
+    b.onclick = () => copyText(list.find(t => t.id === b.dataset.copy).text);
+  });
+}
+function linkify(s) {
+  return s.replace(/https?:\/\/[^\s<]+/g, u => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`);
+}
+$('#sendText').onclick = async () => {
+  const text = $('#textInput').value.trim();
+  if (!text) return toast('先输入内容');
+  try { await api('/api/texts', { text }); $('#textInput').value = ''; toast('已发送'); loadTexts(); }
+  catch (e) { toast(e.message); }
+};
+
+// ---------- 文件列表 ----------
+const IMG = /\.(jpe?g|png|gif|webp|bmp|heic|avif)$/i;
+let lastFiles = '';
+async function loadFiles() {
+  const list = await api('/api/files');
+  const sig = JSON.stringify(list);
+  if (sig === lastFiles) return;
+  lastFiles = sig;
+  if (!list.length) { $('#files').innerHTML = '<div class="empty">还没有文件，从任意一端上传吧</div>'; return; }
+  $('#files').innerHTML = list.map(f => {
+    const u = '/dl/' + encodeURIComponent(f.name);
+    const ext = (f.name.split('.').pop() || '').slice(0, 4).toUpperCase();
+    const icon = IMG.test(f.name) && !/heic$/i.test(f.name) ? `<img loading="lazy" src="${u}?inline=1" alt="">` : esc(ext || 'FILE');
+    return `<div class="file">
+      <div class="icon">${icon}</div>
+      <div class="meta"><div class="fname" title="${esc(f.name)}">${esc(f.name)}</div>
+        <div class="sub">${fmtSize(f.size)} · ${fmtTime(f.mtime)}</div></div>
+      <div class="ops">
+        <a class="btn ghost preview" href="${u}?inline=1" target="_blank">打开</a>
+        <a class="btn" href="${u}" download>下载</a>
+        <button class="danger" data-del="${esc(f.name)}" title="删除">✕</button>
+      </div></div>`;
+  }).join('');
+  $('#files').querySelectorAll('[data-del]').forEach(b => {
+    b.onclick = async () => {
+      if (!confirm(`删除「${b.dataset.del}」？`)) return;
+      try { await api('/api/delete', { name: b.dataset.del }); toast('已删除'); loadFiles(); }
+      catch (e) { toast(e.message); }
+    };
+  });
+}
+
+// ---------- 启动 ----------
+if (location.search.includes('k=')) history.replaceState(null, '', '/');
+loadInfo().catch(() => {});
+function refresh() { loadFiles().catch(() => {}); loadTexts().catch(() => {}); }
+refresh();
+setInterval(() => { if (!document.hidden) refresh(); }, 2500);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+</script>
+</body>
+</html>

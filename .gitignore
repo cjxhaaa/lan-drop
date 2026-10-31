@@ -1,0 +1,25 @@
+# 构建产物
+desktop/src-tauri/target/
+desktop/src-tauri/gen/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+*.iml
+
+# 发布用的 exe / apk 放在 GitHub Releases，不进仓库
+*.exe
+*.apk
+
+# 签名文件和密钥，绝对不能提交
+*.jks
+*.keystore
+.access_key
+
+# 系统和编辑器
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+__pycache__/
